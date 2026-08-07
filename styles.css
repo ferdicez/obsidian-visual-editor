@@ -1,0 +1,397 @@
+/*
+	Visual Editor — estilos.
+
+	Toda cor, fonte e medida sai das variáveis do tema. O plugin não tem paleta própria: ele mora
+	dentro do Obsidian e precisa parecer parte dele, inclusive quando ela troca de tema.
+	Ver `plugins/_docs/painel-de-configuracoes.md`.
+*/
+
+/* ---------------------------------------------------------------------------------------------
+   A view
+   --------------------------------------------------------------------------------------------- */
+
+.visual-editor-vista {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0;
+	overflow: hidden;
+}
+
+/* --- Barra do topo -------------------------------------------------------------------------- */
+
+.visual-editor-vista .ve-barra {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75em;
+	padding: 0.6em 1em;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex: 0 0 auto;
+}
+
+.visual-editor-vista .ve-barra-esquerda,
+.visual-editor-vista .ve-barra-direita {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+
+.visual-editor-vista .ve-barra-esquerda {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-busca {
+	width: 100%;
+	max-width: 22em;
+	font-size: var(--font-ui-small);
+}
+
+.visual-editor-vista .ve-contagem {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
+.visual-editor-vista .ve-botao-icone {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.35em;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-botao-icone:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+/* --- Corpo rolável -------------------------------------------------------------------------- */
+
+/*
+	`container-type: inline-size` faz o corpo virar referência de medida para o `@container` lá
+	embaixo. É o que permite empilhar rótulo e controle quando a ABA está estreita — uma media
+	query olharia para a janela inteira e não veria a aba dividida ao meio.
+*/
+.visual-editor-vista .ve-corpo {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 0.5em 1em 3em;
+	container-type: inline-size;
+}
+
+/* --- Seções --------------------------------------------------------------------------------- */
+
+.visual-editor-vista .ve-secao {
+	margin-bottom: 1.5em;
+}
+
+.visual-editor-vista .ve-secao-titulo {
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--text-faint);
+	padding: 0.9em 0 0.5em;
+	position: sticky;
+	top: 0;
+	background: var(--background-primary);
+	z-index: 1;
+}
+
+/* --- Um campo ------------------------------------------------------------------------------- */
+
+/*
+	Duas colunas: rótulo à esquerda, controle à direita. A linha divisória entre campos, sem
+	moldura, é o mesmo vocabulário dos painéis de configuração (regra 2 da especificação).
+*/
+.visual-editor-vista .ve-campo {
+	display: grid;
+	grid-template-columns: minmax(9em, 15em) 1fr;
+	gap: 1em;
+	align-items: center;
+	padding: 0.65em 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-vista .ve-campo:last-child {
+	border-bottom: none;
+}
+
+.visual-editor-vista .ve-campo-rotulo {
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-campo-nome {
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	overflow-wrap: anywhere;
+}
+
+.visual-editor-vista .ve-campo-descricao {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin-top: 0.15em;
+	overflow-wrap: anywhere;
+}
+
+/* Numa aba estreita, empilhar: 9em de rótulo + slider não cabem lado a lado. */
+@container (max-width: 480px) {
+	.visual-editor-vista .ve-campo {
+		grid-template-columns: 1fr;
+		gap: 0.4em;
+	}
+}
+
+/* --- Controles ------------------------------------------------------------------------------ */
+
+.visual-editor-vista .ve-controle {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-entrada {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: var(--font-ui-small);
+}
+
+.visual-editor-vista .ve-area {
+	flex: 1 1 auto;
+	resize: vertical;
+	min-height: 4em;
+	font-family: var(--font-text);
+	line-height: 1.4;
+}
+
+/* Cor */
+
+.visual-editor-vista .ve-controle-cor .ve-entrada-cor {
+	font-family: var(--font-monospace);
+	max-width: 14em;
+}
+
+.visual-editor-vista .ve-swatch {
+	flex: 0 0 auto;
+	width: 1.8em;
+	height: 1.8em;
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+}
+
+.visual-editor-vista .ve-swatch.is-clicavel {
+	cursor: pointer;
+}
+
+.visual-editor-vista .ve-swatch.is-clicavel:hover {
+	border-color: var(--interactive-accent);
+}
+
+.visual-editor-vista .ve-swatch:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
+}
+
+/*
+	O xadrez só aparece atrás de cores com alfa — é ele que deixa a transparência visível em vez de
+	a amostra parecer branca.
+*/
+.visual-editor-vista .ve-swatch.is-alfa {
+	background-image:
+		linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%),
+		linear-gradient(-45deg, var(--background-modifier-border) 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, var(--background-modifier-border) 75%),
+		linear-gradient(-45deg, transparent 75%, var(--background-modifier-border) 75%);
+	background-size: 8px 8px;
+	background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+
+/* O input de cor é só o mecanismo: quem se vê é a amostra, que o dispara. */
+.visual-editor-vista .ve-seletor-cor {
+	position: absolute;
+	width: 0;
+	height: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Medida e número */
+
+.visual-editor-vista .ve-controle-medida {
+	gap: 0.75em;
+}
+
+.visual-editor-vista .ve-slider {
+	flex: 1 1 auto;
+	min-width: 5em;
+}
+
+.visual-editor-vista .ve-entrada-numero {
+	flex: 0 0 auto;
+	width: 5.5em;
+	text-align: right;
+	font-family: var(--font-monospace);
+}
+
+.visual-editor-vista .ve-unidade {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	font-family: var(--font-monospace);
+	min-width: 2em;
+}
+
+/* Fonte */
+
+.visual-editor-vista .ve-previa-fonte {
+	flex: 0 0 auto;
+	padding: 0.2em 0.6em;
+	font-size: 1.05em;
+	color: var(--text-muted);
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	white-space: nowrap;
+}
+
+/* Sombra */
+
+.visual-editor-vista .ve-previa-sombra {
+	flex: 0 0 auto;
+	width: 2.2em;
+	height: 2.2em;
+	margin: 0.3em;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+}
+
+/* --- Modo código ---------------------------------------------------------------------------- */
+
+.visual-editor-vista .ve-codigo {
+	width: 100%;
+	min-height: 60vh;
+	font-family: var(--font-monospace);
+	font-size: var(--font-smaller);
+	line-height: 1.5;
+	resize: vertical;
+	tab-size: 2;
+	white-space: pre;
+	overflow-wrap: normal;
+	overflow-x: auto;
+}
+
+/* --- Estados vazios e nota ------------------------------------------------------------------ */
+
+.visual-editor-vista .ve-vazio {
+	color: var(--text-faint);
+	font-style: italic;
+	font-size: var(--font-ui-small);
+	padding: 1.5em 0;
+}
+
+.visual-editor-vista .ve-vazio-completo {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 0.5em;
+	padding: 4em 2em;
+	max-width: 32em;
+	margin: 0 auto;
+}
+
+.visual-editor-vista .ve-vazio-icone {
+	color: var(--text-faint);
+	opacity: 0.5;
+}
+
+.visual-editor-vista .ve-vazio-icone svg {
+	width: 2.5em;
+	height: 2.5em;
+}
+
+.visual-editor-vista .ve-vazio-titulo {
+	font-size: var(--font-ui-medium);
+	color: var(--text-muted);
+}
+
+.visual-editor-vista .ve-vazio-texto {
+	font-size: var(--font-ui-small);
+	color: var(--text-faint);
+	line-height: 1.5;
+}
+
+/*
+	A nota do rodapé é o que sustenta a promessa do plugin: ela diz, na tela, que o que não virou
+	controle continua no arquivo. Sem isso a interface pareceria estar escondendo — ou pior,
+	descartando — o resto do CSS.
+*/
+.visual-editor-vista .ve-nota {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5em;
+	margin-top: 1.5em;
+	padding: 0.75em 1em;
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.5;
+}
+
+.visual-editor-vista .ve-nota-icone {
+	flex: 0 0 auto;
+	display: flex;
+	margin-top: 0.1em;
+	color: var(--text-faint);
+}
+
+.visual-editor-vista .ve-nota-icone svg {
+	width: 1em;
+	height: 1em;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Painel de configurações
+   --------------------------------------------------------------------------------------------- */
+
+/* Linha, não cartão — regra 2 da especificação dos painéis. */
+.visual-editor-config .setting-item {
+	background: transparent !important;
+	border: none !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	border-bottom: 1px solid var(--background-modifier-border) !important;
+	padding: 10px 4px !important;
+	margin: 0 !important;
+}
+
+.visual-editor-config .setting-item:last-child {
+	border-bottom: none !important;
+}
+
+.visual-editor-config-vazio {
+	font-style: italic;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	padding: 0.4em 4px 0;
+}
+
+.visual-editor-config-nota {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.5;
+	padding: 0.6em 0.9em;
+	margin: 0.6em 4px 0;
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+}
