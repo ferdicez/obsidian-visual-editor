@@ -532,6 +532,15 @@ export class VistaVisual extends TextFileView {
 			rotulo.createDiv({ cls: "ve-campo-descricao", text: descricao });
 		}
 
+		// Num token sem comentário, quem o USA é a melhor descrição disponível.
+		//
+		// Pedido dela olhando uma lista de `--spacing-1` a `--spacing-8`: *"eu tenho várias opções de
+		// espaço, mas eu não sei do que se trata cada um"*. O nome não distingue, o valor quase não
+		// (16px vs 20px), mas "usado no padding do .card" distingue na hora.
+		if (campo.papel !== "propriedade" && !descricao) {
+			this.desenharQuemUsa(rotulo, campo);
+		}
+
 		if (descricao && longa) {
 			const alternar = cabecalho.createEl("button", {
 				cls: "ve-campo-info",
@@ -630,6 +639,33 @@ export class VistaVisual extends TextFileView {
 		// O valor cru fica no title: `padding: var(--sm) var(--lg)` tem texto entre as fichas que as
 		// fichas sozinhas não mostram.
 		caixa.setAttr("title", campo.valor);
+	}
+
+	/**
+	 * "usado em .card · padding" abaixo do nome do token.
+	 *
+	 * É a resposta para uma lista de `--spacing-1` a `--spacing-8`, onde nem o nome nem o valor
+	 * dizem qual é qual. Mostra os dois primeiros usos e resume o resto — a lista inteira roubaria a
+	 * linha, e a janelinha do token já a tem completa.
+	 *
+	 * Um token que ninguém usa neste arquivo também é informação: costuma ser tema escuro, override
+	 * de media query, ou variável que sobrou de uma refatoração.
+	 */
+	private desenharQuemUsa(onde: HTMLElement, token: Campo): void {
+		const usos = this.usosDe(token.nomeReal);
+		if (usos.length === 0) return;
+
+		const linha = onde.createDiv({ cls: "ve-campo-usos" });
+
+		// Na linha, só a propriedade e o seletor mais interno: `@media (…) › .card · padding` não cabe
+		// e o que ela precisa saber é "isto é o padding do card".
+		const curtos = usos.map((uso) => uso.split(" › ").pop() ?? uso);
+		const unicos = [...new Set(curtos)];
+
+		const mostrados = unicos.slice(0, 2).join(", ");
+		linha.setText(unicos.length > 2 ? `${mostrados} e mais ${unicos.length - 2}` : mostrados);
+		// O `title` traz a lista inteira, para quando os dois primeiros não bastarem.
+		linha.setAttr("title", `Usado em:\n${usos.join("\n")}`);
 	}
 
 	/**

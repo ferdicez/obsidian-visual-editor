@@ -237,6 +237,22 @@
 }
 
 /*
+	"usado em .card · padding" abaixo do nome do token.
+
+	Distingue `--spacing-1` de `--spacing-8`, onde nem o nome nem o valor dizem qual é qual. Mais
+	apagado que a descrição: é informação derivada do arquivo, não algo que ela escreveu.
+*/
+.visual-editor-vista .ve-campo-usos {
+	font-size: var(--font-ui-smaller);
+	font-family: var(--font-monospace);
+	color: var(--text-faint);
+	margin-top: 0.15em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/*
 	O (i) que abre a explicação longa.
 
 	Uma descrição de doze linhas expandida por padrão empurra o controle para o meio de um paredão de
@@ -488,6 +504,12 @@
 	min-width: 5em;
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
+}
+
+/* A opacidade fica junto da cor, antes dos números de posição: os dois formam "a cor desta camada". */
+.visual-editor-vista .ve-sombra-opacidade {
+	flex: 0 0 auto;
+	margin-right: 0.2em;
 }
 
 .visual-editor-vista .ve-sombra-numeros {

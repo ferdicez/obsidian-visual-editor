@@ -1,6 +1,6 @@
 {
 	"name": "visual-editor",
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"description": "Plugin Obsidian: edita o visual dos projetos por interface, direto nos arquivos .css/.json/.txt",
 	"main": "main.js",
 	"scripts": {

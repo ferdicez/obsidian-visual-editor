@@ -1,6 +1,14 @@
 import { setIcon } from "obsidian";
 import { corTemAlfa, paraHex, partirMedida } from "./deduzir";
-import { CamadaSombra, Medida, camadaPadrao, separarCamadas, sombraParaTexto } from "./sombra";
+import {
+	CamadaSombra,
+	Medida,
+	camadaPadrao,
+	juntarAlfa,
+	separarAlfa,
+	separarCamadas,
+	sombraParaTexto,
+} from "./sombra";
 import { Campo } from "./tipos";
 
 /**
@@ -437,12 +445,29 @@ function desenharCamadaSombra(
 	amostra.style.background = cor;
 	if (corTemAlfa(cor)) amostra.addClass("is-alfa");
 
-	const hex = paraHex(cor, pai.doc);
-	if (hex !== null && !corTemAlfa(cor)) {
+	// Declarado ANTES do bloco abaixo: quando não há seletor do sistema, clicar na amostra manda o
+	// foco para cá, e o ouvinte precisa que o campo já exista.
+	const entradaCor = linha.createEl("input", {
+		cls: "ve-entrada ve-sombra-cor-texto",
+		attr: { type: "text", spellcheck: "false", value: partes.cor ?? "" },
+	});
+
+	/*
+		A cor é separada em SÓLIDA + OPACIDADE.
+
+		Sombra quase sempre tem alfa (`rgba(40, 44, 90, 0.052)` é o que a torna sutil), e o seletor do
+		sistema não representa alfa — antes disto o seletor ficava bloqueado justamente onde ela mais
+		precisava dele, e clicar no quadradinho não fazia nada. Com os dois separados, o seletor cuida
+		da cor e um campo próprio cuida da transparência, sem um destruir o outro.
+	*/
+	const separada = separarAlfa(cor);
+
+	if (separada) {
 		const seletor = linha.createEl("input", {
 			cls: "ve-seletor-cor",
-			attr: { type: "color", value: hex },
+			attr: { type: "color", value: separada.solida },
 		});
+
 		amostra.addClass("is-clicavel");
 		amostra.setAttr("role", "button");
 		amostra.setAttr("tabindex", "0");
@@ -454,24 +479,87 @@ function desenharCamadaSombra(
 				seletor.click();
 			}
 		});
-		seletor.addEventListener("input", () => {
-			partes.cor = seletor.value;
-			amostra.style.background = seletor.value;
-			acoes.aoAlterar(false);
+
+		const aplicarCor = (gravar: boolean) => {
+			const nova = juntarAlfa(seletor.value, separada.alfa);
+			partes.cor = nova;
+			amostra.style.background = nova;
+			entradaCor.value = nova;
+			acoes.aoAlterar(gravar);
+		};
+
+		seletor.addEventListener("input", () => aplicarCor(false));
+		seletor.addEventListener("change", () => aplicarCor(true));
+
+		// A opacidade em campo próprio, em porcentagem: `5,2%` é mais legível que `0.052` para
+		// decidir quão sutil a sombra deve ser.
+		const bloco = linha.createDiv({ cls: "ve-sombra-medida ve-sombra-opacidade" });
+		bloco.setAttr("title", "Opacidade da cor desta camada");
+		bloco.createSpan({ cls: "ve-sombra-sigla", text: "Opac." });
+
+		const entradaAlfa = bloco.createEl("input", {
+			cls: "ve-entrada ve-sombra-numero",
+			attr: {
+				type: "number",
+				min: "0",
+				max: "100",
+				step: "1",
+				value: String(Math.round(separada.alfa * 1000) / 10),
+			},
 		});
-		seletor.addEventListener("change", () => {
-			partes.cor = seletor.value;
-			amostra.style.background = seletor.value;
+
+		const confirmarAlfa = () => {
+			const bruto = entradaAlfa.value.trim();
+			if (bruto === "") return;
+			const porcento = parseFloat(bruto);
+			if (Number.isNaN(porcento)) return;
+
+			separada.alfa = Math.max(0, Math.min(1, porcento / 100));
+			const nova = juntarAlfa(seletor.value, separada.alfa);
+			partes.cor = nova;
+			amostra.style.background = nova;
+			amostra.toggleClass("is-alfa", separada.alfa < 1);
+			entradaCor.value = nova;
 			acoes.aoAlterar(true);
+		};
+
+		entradaAlfa.addEventListener("blur", confirmarAlfa);
+		entradaAlfa.addEventListener("keydown", (evento) => {
+			if (evento.key === "Enter") {
+				evento.preventDefault();
+				entradaAlfa.blur();
+			}
 		});
 	} else {
-		amostra.setAttr("aria-label", `Cor da camada ${indice + 1} — edite pelo campo ao lado`);
+		// Sem seletor do sistema — e a amostra tem de DIZER isso.
+		//
+		// Sombra quase sempre tem alfa (`rgba(40, 44, 90, 0.052)` é o que a torna sutil), então este
+		// ramo é o caso COMUM aqui, não a exceção. Ela clicou no quadradinho e nada aconteceu: o
+		// tratamento existia para as cores da lista de tokens e faltou nas camadas de sombra.
+		const motivo = corTemAlfa(cor)
+			? "Esta cor tem transparência, e o seletor do sistema não a representa — usá-lo apagaria o alfa. Clique para editar no campo ao lado."
+			: "Esta cor não é representável no seletor do sistema. Clique para editar no campo ao lado.";
+
+		amostra.addClass("is-sem-seletor");
+		amostra.setAttr("aria-label", motivo);
+		amostra.setAttr("title", motivo);
+		amostra.setAttr("role", "button");
+		amostra.setAttr("tabindex", "0");
+
+		const focarTexto = () => {
+			entradaCor.focus();
+			entradaCor.select();
+		};
+
+		amostra.addEventListener("click", focarTexto);
+		amostra.addEventListener("keydown", (evento) => {
+			if (evento.key === "Enter" || evento.key === " ") {
+				evento.preventDefault();
+				focarTexto();
+			}
+		});
 	}
 
-	const entradaCor = linha.createEl("input", {
-		cls: "ve-entrada ve-sombra-cor-texto",
-		attr: { type: "text", spellcheck: "false", value: partes.cor ?? "" },
-	});
 	entradaCor.addEventListener("blur", () => {
 		const novo = entradaCor.value.trim();
 		partes.cor = novo || null;

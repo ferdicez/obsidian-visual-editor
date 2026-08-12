@@ -217,6 +217,79 @@ export function sombraParaTexto(camadas: CamadaSombra[]): string {
 	return camadas.map(camadaParaTexto).join(", ");
 }
 
+/**
+ * Separa uma cor em "cor sólida" e "opacidade", para a camada ter os dois controles.
+ *
+ * O seletor de cor do sistema não representa alfa: oferecê-lo para `rgba(40, 44, 90, 0.052)`
+ * devolveria opaco e apagaria o `0.052` — que é exatamente o que faz a sombra ser sutil em vez de um
+ * borrão. Mas bloquear o seletor deixa a cor da sombra só editável por texto, e sombra quase SEMPRE
+ * tem alfa: na prática o seletor nunca aparecia onde ela mais precisava dele.
+ *
+ * Separando os dois, o seletor edita a cor e um campo próprio edita a opacidade — e nenhum dos dois
+ * destrói o outro. Devolve null quando a cor não é decomponível (`var()`, `currentColor`), e aí a
+ * interface cai no campo de texto, como antes.
+ */
+export function separarAlfa(cor: string): { solida: string; alfa: number } | null {
+	const v = cor.trim();
+
+	// `#rrggbbaa` / `#rgba`
+	const hex8 = v.match(/^#([0-9a-f]{6})([0-9a-f]{2})$/i);
+	if (hex8) {
+		return { solida: `#${hex8[1]}`.toLowerCase(), alfa: parseInt(hex8[2], 16) / 255 };
+	}
+	const hex4 = v.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+	if (hex4) {
+		const dobrar = (c: string) => `${c}${c}`;
+		return {
+			solida: `#${dobrar(hex4[1])}${dobrar(hex4[2])}${dobrar(hex4[3])}`.toLowerCase(),
+			alfa: parseInt(dobrar(hex4[4]), 16) / 255,
+		};
+	}
+
+	// `rgb(…)` / `rgba(…)`, nas duas sintaxes: vírgulas ou espaços com barra.
+	const rgb = v.match(/^rgba?\s*\(([^)]+)\)$/i);
+	if (rgb) {
+		const partes = rgb[1].split(/[,/]/).map((p) => p.trim()).filter(Boolean);
+		const canais = partes[0].includes(" ") && partes.length <= 2
+			? [...partes[0].split(/\s+/), ...partes.slice(1)]
+			: partes;
+
+		if (canais.length < 3) return null;
+
+		const [r, g, b] = canais.slice(0, 3).map((n) =>
+			n.endsWith("%") ? Math.round((parseFloat(n) / 100) * 255) : Math.round(parseFloat(n))
+		);
+		if ([r, g, b].some((n) => Number.isNaN(n))) return null;
+
+		const bruto = canais[3];
+		const alfa = bruto === undefined ? 1 : bruto.endsWith("%") ? parseFloat(bruto) / 100 : parseFloat(bruto);
+		if (Number.isNaN(alfa)) return null;
+
+		const hex = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+		return { solida: `#${hex(r)}${hex(g)}${hex(b)}`, alfa: Math.max(0, Math.min(1, alfa)) };
+	}
+
+	return null;
+}
+
+/**
+ * Remonta cor + opacidade.
+ *
+ * Alfa 1 volta como hex sólido, não como `rgba(…, 1)`: escrever o alfa redundante sujaria o diff de
+ * quem nunca mexeu na opacidade.
+ */
+export function juntarAlfa(solida: string, alfa: number): string {
+	if (alfa >= 1) return solida;
+
+	const m = solida.trim().match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+	if (!m) return solida;
+
+	const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16));
+	// Três casas bastam para o `0.052` dela e evita a dízima do ponto flutuante.
+	const a = Math.round(Math.max(0, Math.min(1, alfa)) * 1000) / 1000;
+	return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
 /** Uma camada nova, para o botão de adicionar. Valores discretos: ela ajusta a partir daí. */
 export function camadaPadrao(): CamadaSombra {
 	return {
