@@ -796,6 +796,61 @@
 	border-bottom: none !important;
 }
 
+/*
+	Tipos de arquivo: fichas em vez de um campo de texto separado por vírgula.
+
+	Escolher de um conjunto fechado e pequeno é gesto de clique. O campo de texto exigia saber a
+	lista de cor — ela estava só na descrição — e digitar sem errar.
+*/
+.visual-editor-config-tipos {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7em;
+	padding: 0.2em 4px 0.6em;
+}
+
+.visual-editor-config-grupo-nome {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	margin-bottom: 0.35em;
+}
+
+.visual-editor-config-fichas {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35em;
+}
+
+.visual-editor-config-ficha {
+	padding: 0.25em 0.7em;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	box-shadow: none;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+}
+
+.visual-editor-config-ficha:hover {
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+/* Ligada usa a cor de destaque do tema dela — nada de paleta própria. */
+.visual-editor-config-ficha.is-ligada {
+	background: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.visual-editor-config-ficha.is-ligada:hover {
+	background: var(--interactive-accent-hover);
+}
+
 .visual-editor-config-vazio {
 	font-style: italic;
 	color: var(--text-faint);

@@ -1,4 +1,5 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
+import { Formato, extensoesSuportadas } from "./documento";
 import type VisualEditorPlugin from "./main";
 
 /**
@@ -27,30 +28,68 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 		containerEl.scrollTop = scrollAnterior;
 	}
 
+	/**
+	 * Os tipos de arquivo, como fichas clicáveis.
+	 *
+	 * Era um campo de texto separado por vírgula: para ligar o `.json` ela precisava saber que ele
+	 * existe (a lista estava só na descrição) e digitar sem errar. Clicar é o gesto certo para
+	 * escolher de um conjunto fechado — e o conjunto é pequeno e conhecido pelo plugin.
+	 */
 	private montarExtensoes(): void {
-		const config = this.plugin.configuracoes;
+		const ativas = new Set(this.plugin.extensoesAtivas());
 
 		new Setting(this.containerEl)
 			.setName("Tipos de arquivo")
-			.setDesc(
-				"Extensões que o editor visual passa a abrir, separadas por vírgula. Aceita css, scss, sass, less, json, jsonc, txt, env, ini, properties e conf."
-			)
-			.addText((campo) =>
-				campo
-					.setPlaceholder("css, json")
-					.setValue(config.extensoes)
-					.onChange(async (valor) => {
-						this.plugin.configuracoes.extensoes = valor;
-						await this.plugin.salvarConfiguracoes();
+			.setDesc("Quais arquivos o editor visual passa a abrir. Clique para ligar ou desligar.")
+			.addExtraButton((botao) =>
+				botao
+					.setIcon("check-check")
+					.setTooltip("Ligar todos")
+					.onClick(() => {
+						const todas = extensoesSuportadas().flatMap((grupo) => grupo.extensoes);
+						void this.gravarExtensoes(todas);
 					})
 			);
 
-		const ativas = this.plugin.extensoesAtivas();
+		const grade = this.containerEl.createDiv({ cls: "visual-editor-config-tipos" });
 
-		if (ativas.length === 0) {
+		// Rótulo por formato: agrupar deixa claro que `.env`/`.ini` são lidos como texto simples, e
+		// não como um formato próprio que o plugin entenderia melhor.
+		const nomes: Record<Formato, string> = {
+			css: "Folhas de estilo",
+			json: "JSON",
+			texto: "Texto simples",
+		};
+
+		for (const { formato, extensoes } of extensoesSuportadas()) {
+			const grupo = grade.createDiv({ cls: "visual-editor-config-grupo" });
+			grupo.createDiv({ cls: "visual-editor-config-grupo-nome", text: nomes[formato] });
+
+			const fichas = grupo.createDiv({ cls: "visual-editor-config-fichas" });
+
+			for (const extensao of extensoes) {
+				const ligada = ativas.has(extensao);
+
+				const ficha = fichas.createEl("button", {
+					cls: "visual-editor-config-ficha",
+					attr: { type: "button", "aria-pressed": String(ligada) },
+				});
+				ficha.setText(`.${extensao}`);
+				ficha.toggleClass("is-ligada", ligada);
+
+				ficha.addEventListener("click", () => {
+					const novas = new Set(ativas);
+					if (novas.has(extensao)) novas.delete(extensao);
+					else novas.add(extensao);
+					void this.gravarExtensoes([...novas]);
+				});
+			}
+		}
+
+		if (ativas.size === 0) {
 			this.containerEl.createDiv({
 				cls: "visual-editor-config-vazio",
-				text: "Nenhuma extensão reconhecida ainda.",
+				text: "Nenhum tipo de arquivo ligado — o editor visual não vai abrir nada.",
 			});
 		}
 
@@ -60,6 +99,22 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 			cls: "visual-editor-config-nota",
 			text: "Mudanças nesta lista valem depois de reiniciar o Obsidian (ou desativar e reativar o plugin).",
 		});
+	}
+
+	/**
+	 * Grava a lista de extensões e redesenha o painel.
+	 *
+	 * A ordem é a canônica do plugin, não a de clique: sem isto a lista embaralharia a cada toque, e
+	 * a string gravada em `data.json` mudaria de forma sem mudar de significado.
+	 */
+	private async gravarExtensoes(extensoes: string[]): Promise<void> {
+		const canonica = extensoesSuportadas()
+			.flatMap((grupo) => grupo.extensoes)
+			.filter((extensao) => extensoes.includes(extensao));
+
+		this.plugin.configuracoes.extensoes = canonica.join(", ");
+		await this.plugin.salvarConfiguracoes();
+		this.display();
 	}
 
 	/**

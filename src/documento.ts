@@ -25,6 +25,25 @@ export function formatoDe(extensao: string): Formato | null {
 	return POR_EXTENSAO[extensao.toLowerCase()] ?? null;
 }
 
+/**
+ * As extensões suportadas, agrupadas pelo formato que as lê.
+ *
+ * Vem da mesma tabela que decide o formato: uma lista escrita à mão no painel sairia de sincronia no
+ * dia em que um formato novo entrasse aqui, e o painel passaria a oferecer o que o plugin não abre
+ * (ou a esconder o que ele abre).
+ */
+export function extensoesSuportadas(): Array<{ formato: Formato; extensoes: string[] }> {
+	const porFormato = new Map<Formato, string[]>();
+
+	for (const [extensao, formato] of Object.entries(POR_EXTENSAO)) {
+		const lista = porFormato.get(formato);
+		if (lista) lista.push(extensao);
+		else porFormato.set(formato, [extensao]);
+	}
+
+	return [...porFormato].map(([formato, extensoes]) => ({ formato, extensoes }));
+}
+
 export function ler(texto: string, formato: Formato): Documento {
 	switch (formato) {
 		case "css":
