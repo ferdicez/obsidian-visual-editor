@@ -100,11 +100,11 @@ function desenharCor(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
 		amostra.setAttr("role", "button");
 		amostra.setAttr("tabindex", "0");
 		amostra.setAttr("aria-label", `Escolher ${campo.rotulo}`);
-		amostra.addEventListener("click", () => seletor.click());
+		amostra.addEventListener("click", () => abrirSeletor(seletor));
 		amostra.addEventListener("keydown", (evento) => {
 			if (evento.key === "Enter" || evento.key === " ") {
 				evento.preventDefault();
-				seletor.click();
+				abrirSeletor(seletor);
 			}
 		});
 
@@ -484,11 +484,11 @@ function desenharCamadaSombra(
 		amostra.setAttr("role", "button");
 		amostra.setAttr("tabindex", "0");
 		amostra.setAttr("aria-label", `Cor da camada ${indice + 1}`);
-		amostra.addEventListener("click", () => seletor.click());
+		amostra.addEventListener("click", () => abrirSeletor(seletor));
 		amostra.addEventListener("keydown", (evento) => {
 			if (evento.key === "Enter" || evento.key === " ") {
 				evento.preventDefault();
-				seletor.click();
+				abrirSeletor(seletor);
 			}
 		});
 
@@ -845,6 +845,26 @@ function desenharTextoLongo(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): v
 			area.blur();
 		}
 	});
+}
+
+/**
+ * Abre o seletor de cor do sistema.
+ *
+ * `showPicker()` é a API feita para isto e funciona mesmo com o input fora de vista — enquanto o
+ * `.click()` sintético depende de o elemento ser considerado interativo, o que falhou nas camadas de
+ * sombra e deixou a amostra muda. O `click()` fica como reserva para versões antigas do Electron.
+ */
+function abrirSeletor(seletor: HTMLInputElement): void {
+	const comPicker = seletor as HTMLInputElement & { showPicker?: () => void };
+	try {
+		if (typeof comPicker.showPicker === "function") {
+			comPicker.showPicker();
+			return;
+		}
+	} catch {
+		// `showPicker` estoura se o documento não estiver em foco; o clique abaixo ainda pode servir.
+	}
+	seletor.click();
 }
 
 /** Botão de ícone padrão do Obsidian, usado na barra da view. */

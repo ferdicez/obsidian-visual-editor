@@ -398,7 +398,25 @@
 	O xadrez só aparece atrás de cores com alfa — é ele que deixa a transparência visível em vez de
 	a amostra parecer branca.
 */
+/*
+	O xadrez fica num pseudo-elemento ATRÁS da cor, não no `background-image` da própria amostra.
+
+	No `background-image` ele pintava POR CIMA do `background-color` inline (é a ordem de pintura do
+	CSS), então uma cor de sombra a 7% de opacidade sumia sob o xadrez: a amostra parecia um
+	quadradinho cinza vazio, e ela relatou isso como "a cor da sombra não aparece". Agora a cor é
+	pintada sobre o xadrez, que é o que um seletor de cor faz.
+*/
 .visual-editor-vista .ve-swatch.is-alfa {
+	position: relative;
+	isolation: isolate;
+}
+
+.visual-editor-vista .ve-swatch.is-alfa::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	border-radius: inherit;
 	background-image:
 		linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%),
 		linear-gradient(-45deg, var(--background-modifier-border) 25%, transparent 25%),
@@ -406,9 +424,9 @@
 		linear-gradient(-45deg, transparent 75%, var(--background-modifier-border) 75%);
 	background-size: 8px 8px;
 	background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+	background-color: var(--background-primary);
 }
 
-/* O input de cor é só o mecanismo: quem se vê é a amostra, que o dispara. */
 /*
 	O input de cor é só o MECANISMO: quem se vê é a amostra, que o dispara por `.click()`.
 
@@ -580,18 +598,30 @@
 	gap: 0.35em;
 }
 
+/*
+	A linha da camada alinha os controles pela BASE, não pelo centro.
+
+	Os blocos com sigla acima (Opac., X, Y…) são mais altos que a amostra e o campo de cor;
+	centrados, cada um parava numa altura diferente e a linha ficava serrilhada — pedido dela para
+	alinhar. Pela base, todas as caixinhas terminam na mesma linha.
+*/
 .visual-editor-vista .ve-sombra-camada {
 	display: flex;
-	align-items: center;
+	align-items: flex-end;
 	gap: 0.5em;
-	padding: 0.35em 0.5em;
+	padding: 0.4em 0.5em;
 	border-radius: var(--radius-s);
 	background: var(--background-secondary);
 }
 
+/*
+	A amostra da camada é maior que a dos tokens de propósito: cor de sombra vive em opacidade baixa
+	(a dela está em 7%), e num quadrado pequeno isso é indistinguível de vazio. Com mais área, a
+	tinta aparece sobre o xadrez.
+*/
 .visual-editor-vista .ve-sombra-swatch {
-	width: 1.5em;
-	height: 1.5em;
+	width: 1.9em;
+	height: 1.9em;
 }
 
 .visual-editor-vista .ve-sombra-cor-texto {
@@ -599,12 +629,18 @@
 	min-width: 5em;
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
+	/* A mesma altura das caixinhas com sigla, para a base bater sem depender do padding do tema. */
+	padding: 0.2em 0.4em;
 }
 
 /* A opacidade fica junto da cor, antes dos números de posição: os dois formam "a cor desta camada". */
 .visual-editor-vista .ve-sombra-opacidade {
-	flex: 0 0 auto;
 	margin-right: 0.2em;
+}
+
+/* A camada crua não tem caixinhas para alinhar: volta ao centro. */
+.visual-editor-vista .ve-sombra-camada.is-crua {
+	align-items: center;
 }
 
 .visual-editor-vista .ve-sombra-numeros {
@@ -614,24 +650,36 @@
 	flex: 0 0 auto;
 }
 
-/* Sigla acima do número: "X" cabe onde "Deslocamento horizontal" não caberia. O nome inteiro está
-   no `title` de cada bloco. */
+/*
+	Sigla acima do número: "X" cabe onde "Deslocamento horizontal" não caberia. O nome inteiro está
+	no `title` de cada bloco.
+
+	Todos os blocos têm a MESMA largura e a sigla tem altura fixa: sem isso, "Desfoque" e "Espalh."
+	empurravam seus campos para larguras diferentes e as caixinhas ficavam desalinhadas na linha —
+	pedido dela para acertar.
+*/
 .visual-editor-vista .ve-sombra-medida {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	gap: 0.1em;
+	align-items: stretch;
+	gap: 0.15em;
+	width: 4.2em;
+	flex: 0 0 auto;
 }
 
 .visual-editor-vista .ve-sombra-sigla {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-faint);
-	line-height: 1;
+	line-height: 1.2;
+	height: 1.2em;
+	text-align: center;
 	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .visual-editor-vista .ve-sombra-numero {
-	width: 4em;
+	width: 100%;
 	text-align: center;
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
