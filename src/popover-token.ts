@@ -1,5 +1,6 @@
 import { setIcon } from "obsidian";
 import { desenharControle } from "./controles";
+import type { ParteExplicada } from "./explicar-seletor";
 import { Campo } from "./tipos";
 
 /**
@@ -79,26 +80,7 @@ export class PopoverToken {
 		});
 
 		this.posicionar(el, ancora);
-
-		// Fechar ao clicar fora ou com Esc. Os ouvintes entram no próximo quadro: registrados agora,
-		// o próprio clique que abriu a janela a fecharia na mesma volta do laço de eventos.
-		const cliqueFora = (evento: MouseEvent) => {
-			if (evento.target instanceof Node && el.contains(evento.target)) return;
-			this.fechar();
-		};
-		const tecla = (evento: KeyboardEvent) => {
-			if (evento.key === "Escape") this.fechar();
-		};
-
-		window.setTimeout(() => {
-			doc.addEventListener("mousedown", cliqueFora);
-			doc.addEventListener("keydown", tecla);
-		}, 0);
-
-		this.aoFechar = () => {
-			doc.removeEventListener("mousedown", cliqueFora);
-			doc.removeEventListener("keydown", tecla);
-		};
+		this.ouvirFechamento(doc, el);
 	}
 
 	/**
@@ -127,6 +109,70 @@ export class PopoverToken {
 
 		el.style.left = `${esquerda}px`;
 		el.style.top = `${topo}px`;
+	}
+
+	/**
+	 * A janelinha que explica um seletor: "quando esta regra vale".
+	 *
+	 * Mora aqui e não num módulo próprio porque compartilha tudo o que importa com a do token —
+	 * posicionamento, fechar ao clicar fora, fechar com Esc. Duplicar isso significaria dois lugares
+	 * para corrigir quando o posicionamento precisar de ajuste.
+	 */
+	abrirSeletor(ancora: HTMLElement, seletor: string, partes: ParteExplicada[]): void {
+		this.fechar();
+
+		const doc = ancora.doc;
+		const el = doc.body.createDiv({ cls: "visual-editor-popover visual-editor-popover-seletor" });
+		this.el = el;
+
+		const cabecalho = el.createDiv({ cls: "ve-pop-cabecalho" });
+		cabecalho.createSpan({ cls: "ve-pop-titulo", text: "Quando esta regra vale" });
+
+		const fechar = cabecalho.createEl("button", {
+			cls: "ve-pop-fechar",
+			attr: { type: "button", "aria-label": "Fechar" },
+		});
+		setIcon(fechar, "x");
+		fechar.addEventListener("click", () => this.fechar());
+
+		const lista = el.createDiv({ cls: "ve-pop-condicoes" });
+
+		for (const parte of partes) {
+			const item = lista.createDiv({ cls: "ve-pop-condicao" });
+			item.createDiv({ cls: "ve-pop-condicao-cru", text: parte.cru });
+			if (parte.explicacao) {
+				item.createDiv({ cls: "ve-pop-condicao-traducao", text: parte.explicacao });
+			}
+		}
+
+		// O seletor inteiro no rodapé: as partes explicadas são o resumo, e às vezes ela precisa do
+		// texto exato para achar a regra no arquivo.
+		el.createDiv({ cls: "ve-pop-seletor-cru", text: seletor });
+
+		this.posicionar(el, ancora);
+		this.ouvirFechamento(doc, el);
+	}
+
+	/** Fechar ao clicar fora ou com Esc — comum às duas janelinhas. */
+	private ouvirFechamento(doc: Document, el: HTMLElement): void {
+		const cliqueFora = (evento: MouseEvent) => {
+			if (evento.target instanceof Node && el.contains(evento.target)) return;
+			this.fechar();
+		};
+		const tecla = (evento: KeyboardEvent) => {
+			if (evento.key === "Escape") this.fechar();
+		};
+
+		// No próximo quadro: registrados agora, o próprio clique que abriu a janela a fecharia.
+		window.setTimeout(() => {
+			doc.addEventListener("mousedown", cliqueFora);
+			doc.addEventListener("keydown", tecla);
+		}, 0);
+
+		this.aoFechar = () => {
+			doc.removeEventListener("mousedown", cliqueFora);
+			doc.removeEventListener("keydown", tecla);
+		};
 	}
 
 	fechar(): void {

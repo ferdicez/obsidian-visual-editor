@@ -12,6 +12,7 @@ import {
 import { extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
 import { ModalNomeVariavel, sugerirNome } from "./modal-nome";
 import { abrirAcordeao, criarAcordeao } from "./acordeao";
+import { explicarSeletor } from "./explicar-seletor";
 import { Historico } from "./historico";
 import { PopoverToken } from "./popover-token";
 import type VisualEditorPlugin from "./main";
@@ -62,6 +63,9 @@ export class VistaVisual extends TextFileView {
 
 	/** A janelinha de edição de token, aberta a partir de uma ficha na aba Elementos. */
 	private popover = new PopoverToken();
+
+	/** A janelinha que explica um seletor, aberta pelo (i) do cabeçalho de um grupo. */
+	private popoverSeletor = new PopoverToken();
 
 	/**
 	 * Desfazer/refazer próprio.
@@ -173,6 +177,7 @@ export class VistaVisual extends TextFileView {
 		// A janelinha vive no `body`, fora do `contentEl`: esvaziar a view não a levaria junto, e ela
 		// ficaria órfã na tela depois de fechar a aba.
 		this.popover.fechar();
+		this.popoverSeletor.fechar();
 		this.contentEl.empty();
 	}
 
@@ -544,19 +549,58 @@ export class VistaVisual extends TextFileView {
 			// atrás de um acordeão fechado é um resultado que ela não acha.
 			if (this.filtro) abrirAcordeao(chave);
 
+			// Num grupo de ELEMENTOS o título é um seletor CSS, que não se humaniza: `.controle-quadrado`
+			// tem de continuar assim, com o ponto, senão ela não o reconhece no arquivo.
+			const ehSeletor = lista[0]?.papel === "propriedade";
+
 			const acordeao = criarAcordeao(onde, {
 				chave,
-				titulo: humanizar(grupo),
+				titulo: ehSeletor ? grupo : humanizar(grupo),
 				resumo: String(lista.length),
 				// Durante uma busca tudo nasce aberto: obrigar a abrir grupo por grupo até o acerto
 				// anularia o motivo de ter buscado.
 				abertoPorPadrao: this.filtro !== "" || grupos.length <= 3,
 			});
 
+			// O (i) que explica QUANDO a regra vale — pedido dela olhando uma lista de seletores
+			// longos, sem saber o que cada um significa.
+			if (ehSeletor) this.desenharInfoSeletor(acordeao.cabecalho, grupo);
+
 			acordeao.sePreenchido((corpo) => {
 				for (const campo of lista) this.desenharCampo(corpo, campo);
 			});
 		}
+	}
+
+	/**
+	 * O (i) no cabeçalho de um grupo de elementos, explicando quando a regra vale.
+	 *
+	 * Pedido dela: *"tem como colocar um ícone de informação e informar em quais páginas ele
+	 * aparece?"*. Em quais páginas, o CSS não sabe — um arquivo de estilos não guarda onde cada
+	 * regra é usada. O que ele sabe é a CONDIÇÃO, e na prática ela responde à mesma pergunta:
+	 * `@media (width >= 48rem) › .controle-quadrado` só vale em telas de 768px ou mais.
+	 *
+	 * O texto abre num popover em vez de embaixo do título: o cabeçalho é um `<button>` que
+	 * abre/fecha a seção, e conteúdo dentro dele herdaria esse clique.
+	 */
+	private desenharInfoSeletor(cabecalho: HTMLElement, seletor: string): void {
+		const partes = explicarSeletor(seletor);
+		// Sem nenhuma tradução, o (i) não teria o que dizer além de repetir o título.
+		if (!partes.some((parte) => parte.explicacao)) return;
+
+		const acoes = cabecalho.createDiv({ cls: "ve-acordeao-acoes" });
+
+		const botao = acoes.createEl("button", {
+			cls: "ve-campo-info ve-seletor-info",
+			attr: { type: "button", "aria-label": "Quando esta regra vale" },
+		});
+		setIcon(botao, "info");
+
+		botao.addEventListener("click", (evento) => {
+			// Sem isto o clique subiria para o cabeçalho e abriria/fecharia a seção junto.
+			evento.stopPropagation();
+			this.popoverSeletor.abrirSeletor(botao, seletor, partes);
+		});
 	}
 
 	/**
@@ -849,19 +893,39 @@ export class VistaVisual extends TextFileView {
 		return [...new Set(usos)];
 	}
 
-	/** Leva para o token na aba Tokens, filtrando por ele e destacando a linha. */
+	/**
+	 * Leva para o token na aba Tokens, abrindo o grupo dele e destacando a linha.
+	 *
+	 * Três coisas tinham de ser resolvidas para o botão funcionar, e faltavam duas:
+	 *
+	 * 1. **O grupo do token pode estar fechado.** Desde que os grupos viraram acordeão, o conteúdo
+	 *    de uma seção fechada nem é desenhado — o `querySelector` não achava nada e o clique não
+	 *    fazia efeito nenhum. Por isso o acordeão do grupo é aberto ANTES de redesenhar.
+	 * 2. **No modo emparelhado, trocar de aba não muda nada** (as duas listas já estão à vista), e a
+	 *    rolagem é da coluna, não do corpo. `scrollIntoView` resolve os dois casos.
+	 * 3. O elemento só existe depois do redesenho, e a rolagem só funciona depois do layout — daí o
+	 *    `requestAnimationFrame`.
+	 */
 	private irParaToken(token: Campo): void {
-		this.aba = "tokens";
+		if (!this.emparelhadoAtivo) this.aba = "tokens";
 		this.filtro = "";
+
+		// Abre o grupo onde o token mora, no modo de agrupamento em vigor para os tokens.
+		const modo = this.agrupamentoDeTokens;
+		const [[grupo] = [""]] = [...agrupar([token], modo)];
+		abrirAcordeao(`${this.file?.path ?? ""}|${modo}|${grupo}`);
+
 		this.desenhar();
 
-		const alvo = this.corpo.querySelector(`[data-chave="${CSS.escape(token.chave)}"]`);
-		if (!(alvo instanceof HTMLElement)) return;
+		requestAnimationFrame(() => {
+			const alvo = this.corpo?.querySelector(`[data-chave="${CSS.escape(token.chave)}"]`);
+			if (!(alvo instanceof HTMLElement)) return;
 
-		alvo.scrollIntoView({ block: "center", behavior: "smooth" });
-		// O destaque é temporário: some sozinho depois de ela achar a linha.
-		alvo.addClass("is-destacado");
-		window.setTimeout(() => alvo.removeClass("is-destacado"), 1600);
+			alvo.scrollIntoView({ block: "center", behavior: "smooth" });
+			// O destaque é temporário: some sozinho depois de ela achar a linha.
+			alvo.addClass("is-destacado");
+			window.setTimeout(() => alvo.removeClass("is-destacado"), 1600);
+		});
 	}
 
 	/**

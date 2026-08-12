@@ -1343,6 +1343,96 @@
 	height: 13px;
 }
 
+/* --- A janelinha que explica um seletor ------------------------------------------------------ */
+
+.visual-editor-popover-seletor {
+	width: min(26em, calc(100vw - 2em));
+}
+
+.visual-editor-popover .ve-pop-titulo {
+	flex: 1 1 auto;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.visual-editor-popover .ve-pop-condicoes {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6em;
+}
+
+/*
+	Cada nível do seletor: o trecho cru acima, a tradução abaixo.
+
+	A ordem importa — ela reconhece o trecho do arquivo primeiro e lê a explicação depois, e não o
+	contrário.
+*/
+.visual-editor-popover .ve-pop-condicao-cru {
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	overflow-wrap: anywhere;
+}
+
+.visual-editor-popover .ve-pop-condicao-traducao {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-normal);
+	line-height: 1.45;
+	margin-top: 0.1em;
+	padding-left: 0.7em;
+	border-left: 2px solid var(--background-modifier-border);
+}
+
+/* O seletor inteiro no rodapé, para ela achar a regra no arquivo. */
+.visual-editor-popover .ve-pop-seletor-cru {
+	margin-top: 0.8em;
+	padding-top: 0.6em;
+	border-top: 1px solid var(--background-modifier-border);
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	overflow-wrap: anywhere;
+	line-height: 1.4;
+}
+
+/*
+	O (i) no cabeçalho de um grupo de elementos.
+
+	A ordem visual é título — (i) — contagem: o ícone acompanha o nome da regra que ele explica, e a
+	contagem continua na ponta direita. Como o botão é criado depois do resumo no script, `order`
+	acerta a posição sem depender da ordem de criação.
+*/
+.visual-editor-vista .ve-acordeao-acoes {
+	display: flex;
+	align-items: center;
+	flex: 0 0 auto;
+	order: 3;
+	margin-left: 0.1em;
+}
+
+/* A ordem explícita: seta, título, (i), contagem. Sem ela, o (i) sairia depois da contagem, que é
+   criada antes no script. */
+.visual-editor-vista .ve-acordeao-seta {
+	order: 1;
+}
+
+.visual-editor-vista .ve-acordeao-textos {
+	order: 2;
+}
+
+.visual-editor-vista .ve-acordeao-resumo {
+	order: 4;
+}
+
+.visual-editor-vista .ve-seletor-info {
+	opacity: 0.6;
+}
+
+.visual-editor-vista .ve-acordeao-cabecalho:hover .ve-seletor-info {
+	opacity: 1;
+}
+
 /* --- Modo código ---------------------------------------------------------------------------- */
 
 .visual-editor-vista .ve-codigo {
