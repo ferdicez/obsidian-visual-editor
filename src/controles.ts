@@ -1,5 +1,5 @@
 import { setIcon } from "obsidian";
-import { corTemAlfa, paraHex, partirMedida } from "./deduzir";
+import { corTemAlfa, paraHex, partirBorda, partirMedida } from "./deduzir";
 import {
 	CamadaSombra,
 	Medida,
@@ -54,6 +54,9 @@ export function desenharControle(pai: HTMLElement, campo: Campo, aoMudar: AoMuda
 			break;
 		case "sombra":
 			desenharSombra(pai, campo, aoMudar);
+			break;
+		case "borda":
+			desenharBorda(pai, campo, aoMudar);
 			break;
 		case "lados":
 			desenharLados(pai, campo, aoMudar);
@@ -650,6 +653,95 @@ function medidaDaCamada(
 		if (evento.key === "Enter") {
 			evento.preventDefault();
 			entrada.blur();
+		}
+	});
+}
+
+/**
+ * Borda: largura, estilo e cor — as três coisas que uma borda tem.
+ *
+ * Antes caía no editor de SOMBRA, porque `1px solid #e6e3e8` também é "medida mais cor". O
+ * resultado era um controle de camadas com X, Y e desfoque que uma borda não tem.
+ */
+function desenharBorda(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
+	const partes = partirBorda(campo.valor);
+	if (!partes) {
+		desenharTexto(pai, campo, aoMudar);
+		return;
+	}
+
+	const caixa = pai.createDiv({ cls: "ve-controle ve-controle-borda" });
+	const estado = { ...partes };
+
+	const gravar = () => aoMudar(`${estado.largura} ${estado.estilo} ${estado.cor}`);
+
+	// Largura
+	const larguraEl = caixa.createEl("input", {
+		cls: "ve-entrada ve-borda-largura",
+		attr: { type: "text", spellcheck: "false", value: estado.largura, "aria-label": "Espessura" },
+	});
+	larguraEl.addEventListener("blur", () => {
+		const novo = larguraEl.value.trim();
+		if (!novo || novo === estado.largura) return;
+		estado.largura = novo;
+		gravar();
+	});
+	larguraEl.addEventListener("keydown", (evento) => {
+		if (evento.key === "Enter") {
+			evento.preventDefault();
+			larguraEl.blur();
+		}
+	});
+
+	// Estilo — lista fechada, então um menu em vez de campo livre.
+	const estiloEl = caixa.createEl("select", { cls: "dropdown ve-borda-estilo" });
+	for (const opcao of ["solid", "dashed", "dotted", "double", "none"]) {
+		estiloEl.createEl("option", { text: opcao, value: opcao });
+	}
+	estiloEl.value = estado.estilo;
+	estiloEl.addEventListener("change", () => {
+		estado.estilo = estiloEl.value;
+		gravar();
+	});
+
+	// Cor — a mesma amostra com seletor por cima do resto do plugin.
+	const amostra = caixa.createDiv({ cls: "ve-swatch ve-borda-swatch" });
+	pintarAmostra(amostra, estado.cor);
+
+	const corTexto = caixa.createEl("input", {
+		cls: "ve-entrada ve-borda-cor",
+		attr: { type: "text", spellcheck: "false", value: estado.cor, "aria-label": "Cor da borda" },
+	});
+
+	const separada = separarAlfa(estado.cor);
+	if (separada) {
+		const seletor = amostra.createEl("input", {
+			cls: "ve-seletor-cor",
+			attr: { type: "color", value: separada.solida, "aria-label": "Escolher a cor da borda" },
+		});
+		amostra.addClass("is-clicavel");
+
+		const aplicar = (gravarAgora: boolean) => {
+			estado.cor = juntarAlfa(seletor.value, separada.alfa);
+			pintarAmostra(amostra, estado.cor);
+			corTexto.value = estado.cor;
+			if (gravarAgora) gravar();
+		};
+		seletor.addEventListener("input", () => aplicar(false));
+		seletor.addEventListener("change", () => aplicar(true));
+	}
+
+	corTexto.addEventListener("blur", () => {
+		const novo = corTexto.value.trim();
+		if (!novo || novo === estado.cor) return;
+		estado.cor = novo;
+		pintarAmostra(amostra, novo);
+		gravar();
+	});
+	corTexto.addEventListener("keydown", (evento) => {
+		if (evento.key === "Enter") {
+			evento.preventDefault();
+			corTexto.blur();
 		}
 	});
 }

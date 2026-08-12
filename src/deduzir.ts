@@ -151,11 +151,61 @@ function faixaPara(unidade: string, numero: number): { minimo: number; maximo: n
 	return { minimo, maximo, passo: base.passo };
 }
 
-/** Um valor com mais de uma parte e uma cor no meio: `0 2px 8px rgba(0,0,0,.1)`. */
-function ehSombra(valor: string): boolean {
+/**
+ * Um valor com mais de uma parte e uma cor no meio: `0 2px 8px rgba(0,0,0,.1)`.
+ *
+ * A checagem do NOME é o que separa sombra de borda. `border: 1px solid #e6e3e8` também é "medida
+ * mais cor", e sem isto virava um editor de camadas de sombra — com campos de X, Y e desfoque que
+ * a borda não tem. O erro aparecia em qualquer CSS de verdade, onde `border` é comum.
+ */
+function ehSombra(chave: string, valor: string): boolean {
+	// `box-shadow`, `text-shadow`, `drop-shadow`, `--sombra-*`, `--shadow-*`.
+	if (!/sombra|shadow/i.test(chave)) return false;
+
 	const v = valor.trim();
 	if (!/\s/.test(v)) return false;
 	return ehCor(v.split(/\s+(?![^(]*\))/).pop() ?? "") || /rgba?\(|hsla?\(/i.test(v);
+}
+
+/**
+ * Borda e contorno: `1px solid #e6e3e8`, `2px solid var(--color-roxo)`.
+ *
+ * Mesma forma da sombra, papel diferente — e por isso um controle próprio: largura, estilo e cor,
+ * que são as três coisas que uma borda tem.
+ */
+export function partirBorda(
+	valor: string
+): { largura: string; estilo: string; cor: string } | null {
+	const partes = valor.trim().split(/\s+(?![^(]*\))/);
+	if (partes.length !== 3) return null;
+
+	const [largura, estilo, cor] = partes;
+	if (!ESTILOS_DE_BORDA.includes(estilo.toLowerCase())) return null;
+	if (!/^[\d.]+(px|rem|em)$/i.test(largura)) return null;
+	// A cor pode ser um `var()` — a interface o mostra como texto e devolve intacto.
+	if (!ehCor(cor) && !/^var\s*\(/i.test(cor)) return null;
+
+	return { largura, estilo, cor };
+}
+
+const ESTILOS_DE_BORDA = [
+	"none",
+	"solid",
+	"dashed",
+	"dotted",
+	"double",
+	"groove",
+	"ridge",
+	"inset",
+	"outset",
+	"hidden",
+];
+
+/** A propriedade descreve uma borda ou contorno? */
+function ehPropriedadeDeBorda(chave: string): boolean {
+	return /^(border|outline)(-(block|inline)(-(start|end))?|-(top|right|bottom|left))?$/i.test(
+		chave.replace(/^--/, "")
+	);
 }
 
 /** `'Inter', -apple-system, sans-serif` — lista de fontes separada por vírgula. */
@@ -193,6 +243,10 @@ export function deduzir(chave: string, valor: string): Deducao {
 
 	if (ehCor(v)) return { tipo: "cor" };
 
+	// Borda com a cor em `var()` — `1px solid var(--color-linha)` é a forma mais comum num CSS com
+	// tokens, e precisa vir antes da guarda geral de `var()` logo abaixo.
+	if (ehPropriedadeDeBorda(chave) && partirBorda(v)) return { tipo: "borda" };
+
 	// Uma referência no meio de um valor composto que NÃO é lados continua texto.
 	if (/\bvar\s*\(/i.test(v) && !ehPropriedadeDeLados(chave)) return { tipo: "texto" };
 
@@ -222,7 +276,10 @@ export function deduzir(chave: string, valor: string): Deducao {
 
 	if (ehPilhaDeFontes(chave, v)) return { tipo: "fonte" };
 
-	if (ehSombra(v)) return { tipo: "sombra" };
+	// Borda antes de sombra: as duas têm a forma "medida + cor", e é o NOME que as distingue.
+	if (ehPropriedadeDeBorda(chave) && partirBorda(v)) return { tipo: "borda" };
+
+	if (ehSombra(chave, v)) return { tipo: "sombra" };
 
 	// Textos com quebra de linha precisam de textarea; um input de uma linha esconderia o conteúdo.
 	if (v.includes("\n") || v.length > 120) return { tipo: "textoLongo" };

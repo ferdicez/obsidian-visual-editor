@@ -375,6 +375,58 @@ export class VistaVisual extends TextFileView {
 				this.desenhar();
 			}
 		);
+
+		/*
+			A SAÍDA do editor visual.
+
+			Ela relatou que o arquivo ficava preso: *"por mais que eu feche o arquivo, ele volta
+			abrindo na visualização editor"*. Duas coisas causavam isso — o Obsidian guarda o tipo de
+			view no layout salvo, então reabrir a aba restaura o editor visual; e com "abrir direto na
+			interface" ligado, o `registerExtensions` manda todo `.css` para cá.
+
+			O botão resolve o caso imediato (sair AGORA, neste arquivo) e, no menu do botão direito,
+			oferece desligar a preferência de vez — que é o que faz o próximo arquivo abrir como texto.
+		*/
+		const sair = botaoIcone(direita, "log-out", "Sair do editor visual (abrir como texto)", () => {
+			const arquivo = this.file;
+			if (arquivo) void this.plugin.alternar(this.leaf, arquivo);
+		});
+
+		sair.addEventListener("contextmenu", (evento) => {
+			const menu = new Menu();
+
+			menu.addItem((item) =>
+				item
+					.setTitle("Abrir este arquivo como texto")
+					.setIcon("file-text")
+					.onClick(() => {
+						const arquivo = this.file;
+						if (arquivo) void this.plugin.alternar(this.leaf, arquivo);
+					})
+			);
+
+			const ligado = this.plugin.configuracoes.abrirNaInterface;
+			menu.addItem((item) =>
+				item
+					.setTitle(
+						ligado
+							? "Parar de abrir estes arquivos na interface"
+							: "Abrir estes arquivos direto na interface"
+					)
+					.setIcon(ligado ? "toggle-left" : "toggle-right")
+					.onClick(async () => {
+						this.plugin.configuracoes.abrirNaInterface = !ligado;
+						await this.plugin.salvarConfiguracoes();
+						new Notice(
+							ligado
+								? "Os arquivos passam a abrir como texto. Reinicie o Obsidian para valer."
+								: "Os arquivos passam a abrir na interface. Reinicie o Obsidian para valer."
+						);
+					})
+			);
+
+			menu.showAtMouseEvent(evento);
+		});
 	}
 
 	/**

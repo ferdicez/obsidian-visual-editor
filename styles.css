@@ -618,6 +618,45 @@
 	min-width: 1.8em;
 }
 
+/* --- Borda ----------------------------------------------------------------------------------- */
+
+/*
+	Espessura, estilo e cor — as três coisas que uma borda tem.
+
+	Antes `1px solid #e6e3e8` caía no editor de SOMBRA, porque também é "medida mais cor". O nome da
+	propriedade é o que separa os dois agora.
+*/
+.visual-editor-vista .ve-controle-borda {
+	gap: 0.4em;
+}
+
+.visual-editor-vista .ve-borda-largura {
+	flex: 0 0 auto;
+	width: 4.5em;
+	text-align: center;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+}
+
+.visual-editor-vista .ve-borda-estilo {
+	flex: 0 0 auto;
+	font-size: var(--font-ui-smaller);
+	height: auto;
+	padding: 0.2em 1.4em 0.2em 0.4em;
+}
+
+.visual-editor-vista .ve-borda-swatch {
+	width: 1.5em;
+	height: 1.5em;
+}
+
+.visual-editor-vista .ve-borda-cor {
+	flex: 1 1 6em;
+	min-width: 4em;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+}
+
 /* --- Lados (padding, margin, gap) ------------------------------------------------------------ */
 
 /*
