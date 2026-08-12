@@ -121,7 +121,11 @@ export function modoDisponivel(campos: Campo[], modo: ModoAgrupamento): boolean 
 }
 
 /** Agrupa os campos na ordem em que os grupos aparecem, para a interface desenhar seções. */
-export function agrupar(campos: Campo[], modo: ModoAgrupamento = "estrutura"): Map<string, Campo[]> {
+export function agrupar(
+	campos: Campo[],
+	modo: ModoAgrupamento = "estrutura",
+	alfabetico = false
+): Map<string, Campo[]> {
 	const grupos = new Map<string, Campo[]>();
 
 	for (const campo of campos) {
@@ -131,14 +135,44 @@ export function agrupar(campos: Campo[], modo: ModoAgrupamento = "estrutura"): M
 		else grupos.set(nome, [campo]);
 	}
 
+	/*
+		A ordem alfabética vale para os grupos de ELEMENTOS, não para os de tokens.
+
+		Num arquivo com 82 regras, a ordem do arquivo não ajuda a achar `.controle` — pedido dela.
+		Já a ordem dos tokens é intencional: ela escreve as cores juntas e os espaçamentos em escala,
+		e alfabetar isso desmancharia a organização que ela montou.
+
+		A comparação usa `localeCompare` com `numeric`, para `.item-2` vir antes de `.item-10`.
+	*/
+	const ordenados = alfabetico
+		? new Map(
+				[...grupos].sort((a, b) =>
+					// A sobra continua no fim, mesmo alfabetando.
+					a[0] === SEM_GRUPO ? 1 : b[0] === SEM_GRUPO ? -1 : compararGrupos(a[0], b[0])
+				)
+			)
+		: grupos;
+
 	// "Outros" vai para o fim: é a sobra, e ela não deve abrir a tela olhando para a sobra.
-	const sobra = grupos.get(SEM_GRUPO);
-	if (sobra && grupos.size > 1) {
-		grupos.delete(SEM_GRUPO);
-		grupos.set(SEM_GRUPO, sobra);
+	const sobra = ordenados.get(SEM_GRUPO);
+	if (sobra && ordenados.size > 1) {
+		ordenados.delete(SEM_GRUPO);
+		ordenados.set(SEM_GRUPO, sobra);
 	}
 
-	return grupos;
+	return ordenados;
+}
+
+/**
+ * Compara dois nomes de grupo para a ordem alfabética.
+ *
+ * Os prefixos de contexto (`@layer components › `, `@media … › `) são ignorados na comparação: eles
+ * repetem em dezenas de regras e, se contassem, tudo o que está dentro de uma `@layer` ficaria
+ * amontoado sob a letra "@" em vez de aparecer pelo nome que ela procura.
+ */
+function compararGrupos(a: string, b: string): number {
+	const chave = (nome: string) => (nome.split("›").pop() ?? nome).trim().replace(/^[.#]/, "");
+	return chave(a).localeCompare(chave(b), "pt-BR", { numeric: true, sensitivity: "base" });
 }
 
 function nomeDoGrupo(campo: Campo, modo: ModoAgrupamento): string {

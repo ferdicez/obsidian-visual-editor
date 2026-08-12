@@ -532,7 +532,10 @@ export class VistaVisual extends TextFileView {
 	 * inteira atrás de um clique, sem nada a ganhar.
 	 */
 	private desenharLista(onde: HTMLElement, campos: Campo[], modo: ModoAgrupamento): void {
-		const grupos = [...agrupar(campos, modo)];
+		// Os grupos de elementos vão em ordem alfabética; os de tokens ficam na ordem do arquivo, que
+		// é intencional (cores juntas, espaçamentos em escala). Ver `agrupar`.
+		const ehListaDeElementos = campos[0]?.papel === "propriedade";
+		const grupos = [...agrupar(campos, modo, ehListaDeElementos)];
 
 		if (grupos.length === 1) {
 			const secao = onde.createDiv({ cls: "ve-secao" });
