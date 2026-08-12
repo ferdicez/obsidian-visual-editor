@@ -359,19 +359,25 @@
 }
 
 /*
-	"usado em .card · padding" abaixo do nome do token.
+	A lista de onde o token é usado, dentro do (i).
 
 	Distingue `--spacing-1` de `--spacing-8`, onde nem o nome nem o valor dizem qual é qual. Mais
-	apagado que a descrição: é informação derivada do arquivo, não algo que ela escreveu.
+	apagada que a descrição: é informação derivada do arquivo, não algo que ela escreveu.
 */
-.visual-editor-vista .ve-campo-usos {
+.visual-editor-vista .ve-campo-usos-titulo {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	margin-bottom: 0.15em;
+}
+
+.visual-editor-vista .ve-campo-uso {
 	font-size: var(--font-ui-smaller);
 	font-family: var(--font-monospace);
-	color: var(--text-faint);
-	margin-top: 0.15em;
+	color: var(--text-muted);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	padding: 0.05em 0;
 }
 
 /*
@@ -408,14 +414,26 @@
 }
 
 /*
-	Explicação aberta: recuada e com uma guia à esquerda, para ela ver de relance que aquilo é
-	comentário do arquivo e não mais um controle.
+	A caixa que o (i) abre: recuada e com uma guia à esquerda, para ela ver de relance que aquilo é
+	informação sobre o campo, e não mais um controle.
+
+	Cabe a descrição do arquivo, a lista de usos, ou as duas — é o mesmo lugar para tudo o que
+	explica o campo, em vez dos três tratamentos diferentes que havia antes.
 */
-.visual-editor-vista .ve-campo-descricao-longa {
+.visual-editor-vista .ve-campo-info-texto {
 	margin-top: 0.4em;
 	padding-left: 0.7em;
 	border-left: 2px solid var(--background-modifier-border);
 	line-height: 1.5;
+}
+
+.visual-editor-vista .ve-campo-info-texto .ve-campo-descricao {
+	margin-top: 0;
+}
+
+/* Um espaço entre a descrição e a lista de usos, quando as duas aparecem. */
+.visual-editor-vista .ve-campo-info-texto .ve-campo-descricao + .ve-campo-usos {
+	margin-top: 0.5em;
 }
 
 /* Numa aba estreita, empilhar: 9em de rótulo + slider não cabem lado a lado. */

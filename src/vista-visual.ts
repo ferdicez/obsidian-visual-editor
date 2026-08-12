@@ -644,15 +644,6 @@ export class VistaVisual extends TextFileView {
 		}
 	}
 
-	/**
-	 * Acima de quantos caracteres a descrição é recolhida atrás do (i).
-	 *
-	 * Uma descrição curta ("o que flutua acima de tudo") é rótulo: ajuda sem atrapalhar. Uma longa é
-	 * ensaio — e expandida em coluna estreita ela estica a linha para uma dúzia de alturas, jogando
-	 * o controle para o meio de um paredão de texto e destruindo a leitura da lista.
-	 */
-	private static readonly LIMITE_DESCRICAO = 90;
-
 	private desenharCampo(pai: HTMLElement, campo: Campo): void {
 		const linha = pai.createDiv({ cls: "ve-campo" });
 		// A chave marca a linha para o "ir para o token" achá-la depois de trocar de aba.
@@ -668,40 +659,23 @@ export class VistaVisual extends TextFileView {
 			text: campo.papel === "propriedade" ? (campo.propriedade ?? campo.rotulo) : campo.rotulo,
 		});
 
+		/*
+			Tudo o que EXPLICA o campo fica atrás do mesmo (i).
+
+			Antes eram três tratamentos diferentes para a mesma função: descrição curta solta embaixo do
+			nome, descrição longa atrás do (i), e "usado em" solto embaixo também. Pedido dela: *"quando
+			tiver esses textinhos assim embaixo, coloca o iconezinho de informação do lado pra aparecer
+			igual aos outros"*. Um padrão só deixa a lista alinhada e a altura das linhas previsível.
+		*/
 		const descricao = campo.descricao;
-		const longa = descricao !== undefined && descricao.length > VistaVisual.LIMITE_DESCRICAO;
 
-		if (descricao && !longa) {
-			rotulo.createDiv({ cls: "ve-campo-descricao", text: descricao });
-		}
+		// Num token sem comentário, quem o USA é a melhor descrição disponível: numa lista de
+		// `--spacing-1` a `--spacing-8`, nem o nome nem o valor distinguem, mas "o padding do .card"
+		// distingue na hora.
+		const usos = campo.papel !== "propriedade" && !descricao ? this.usosDe(campo.nomeReal) : [];
 
-		// Num token sem comentário, quem o USA é a melhor descrição disponível.
-		//
-		// Pedido dela olhando uma lista de `--spacing-1` a `--spacing-8`: *"eu tenho várias opções de
-		// espaço, mas eu não sei do que se trata cada um"*. O nome não distingue, o valor quase não
-		// (16px vs 20px), mas "usado no padding do .card" distingue na hora.
-		if (campo.papel !== "propriedade" && !descricao) {
-			this.desenharQuemUsa(rotulo, campo);
-		}
-
-		if (descricao && longa) {
-			const alternar = cabecalho.createEl("button", {
-				cls: "ve-campo-info",
-				attr: { type: "button", "aria-label": "Ver a explicação", "aria-expanded": "false" },
-			});
-			setIcon(alternar, "info");
-
-			const texto = rotulo.createDiv({ cls: "ve-campo-descricao ve-campo-descricao-longa" });
-			texto.setText(descricao);
-			texto.hide();
-
-			alternar.addEventListener("click", () => {
-				const aberto = alternar.getAttr("aria-expanded") === "true";
-				alternar.setAttr("aria-expanded", String(!aberto));
-				alternar.toggleClass("is-ativo", !aberto);
-				if (aberto) texto.hide();
-				else texto.show();
-			});
+		if (descricao || usos.length > 0) {
+			this.desenharInfo(cabecalho, rotulo, descricao, usos);
 		}
 
 		// O nome real fica no title: o rótulo humanizado é bom para ler, mas na hora de casar com o
@@ -794,21 +768,71 @@ export class VistaVisual extends TextFileView {
 	 * Um token que ninguém usa neste arquivo também é informação: costuma ser tema escuro, override
 	 * de media query, ou variável que sobrou de uma refatoração.
 	 */
-	private desenharQuemUsa(onde: HTMLElement, token: Campo): void {
-		const usos = this.usosDe(token.nomeReal);
+	/**
+	 * O (i) ao lado do nome, e o texto que ele abre.
+	 *
+	 * Um só caminho para as duas coisas que explicam um campo — o comentário que ela escreveu no
+	 * arquivo e a lista de quem usa o token. Ficam recolhidos: uma descrição de doze linhas aberta
+	 * por padrão estica a linha e joga o controle para o meio de um paredão de texto, e uma lista de
+	 * usos embaixo de cada nome faz a lista inteira crescer sem que ela tenha pedido.
+	 */
+	private desenharInfo(
+		cabecalho: HTMLElement,
+		rotulo: HTMLElement,
+		descricao: string | undefined,
+		usos: string[]
+	): void {
+		const alternar = cabecalho.createEl("button", {
+			cls: "ve-campo-info",
+			attr: {
+				type: "button",
+				"aria-label": descricao ? "Ver a explicação" : "Ver onde é usado",
+				"aria-expanded": "false",
+			},
+		});
+		setIcon(alternar, "info");
+
+		const caixa = rotulo.createDiv({ cls: "ve-campo-info-texto" });
+		caixa.hide();
+
+		if (descricao) {
+			caixa.createDiv({ cls: "ve-campo-descricao", text: descricao });
+		}
+
+		if (usos.length > 0) {
+			this.desenharQuemUsa(caixa, usos);
+		}
+
+		alternar.addEventListener("click", () => {
+			const aberto = alternar.getAttr("aria-expanded") === "true";
+			alternar.setAttr("aria-expanded", String(!aberto));
+			alternar.toggleClass("is-ativo", !aberto);
+			if (aberto) caixa.hide();
+			else caixa.show();
+		});
+	}
+
+	/**
+	 * A lista de onde o token é usado, dentro do (i).
+	 *
+	 * Recolhida, cabe a lista INTEIRA — não há mais o corte em dois que a versão em linha precisava
+	 * para não estourar a largura do rótulo.
+	 */
+	private desenharQuemUsa(onde: HTMLElement, usos: string[]): void {
 		if (usos.length === 0) return;
 
-		const linha = onde.createDiv({ cls: "ve-campo-usos" });
+		const bloco = onde.createDiv({ cls: "ve-campo-usos" });
+		bloco.createDiv({
+			cls: "ve-campo-usos-titulo",
+			text: usos.length === 1 ? "Usado em 1 lugar" : `Usado em ${usos.length} lugares`,
+		});
 
-		// Na linha, só a propriedade e o seletor mais interno: `@media (…) › .card · padding` não cabe
-		// e o que ela precisa saber é "isto é o padding do card".
-		const curtos = usos.map((uso) => uso.split(" › ").pop() ?? uso);
-		const unicos = [...new Set(curtos)];
-
-		const mostrados = unicos.slice(0, 2).join(", ");
-		linha.setText(unicos.length > 2 ? `${mostrados} e mais ${unicos.length - 2}` : mostrados);
-		// O `title` traz a lista inteira, para quando os dois primeiros não bastarem.
-		linha.setAttr("title", `Usado em:\n${usos.join("\n")}`);
+		// O seletor mais interno basta: `@media (…) › .card · padding` é comprido e o que importa é
+		// "isto é o padding do card". O caminho completo fica no `title` de cada linha.
+		for (const uso of usos) {
+			const linha = bloco.createDiv({ cls: "ve-campo-uso", text: uso.split(" › ").pop() ?? uso });
+			if (uso.includes(" › ")) linha.setAttr("title", uso);
+		}
 	}
 
 	/**
