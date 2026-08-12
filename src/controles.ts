@@ -100,12 +100,28 @@ function desenharCor(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
 			aoMudar(seletor.value);
 		});
 	} else {
-		amostra.setAttr(
-			"aria-label",
-			temAlfa
-				? "Cor com transparência — edite pelo campo de texto para preservar o alfa"
-				: "Cor não representável no seletor — edite pelo campo de texto"
-		);
+		// Sem seletor: a amostra fica marcada e DIZ por quê.
+		//
+		// Ela relatou que "alguns quadradinhos abrem o card de cor, outros não" — o comportamento era
+		// deliberado (o seletor nativo do sistema não representa alfa, e devolver opaco comeria a
+		// transparência que ela escreveu), mas nada na tela explicava isso. Um controle que às vezes
+		// responde e às vezes não, sem dizer o motivo, parece defeito.
+		const motivo = temAlfa
+			? "Esta cor tem transparência. O seletor do sistema não a representa — editando por aqui o alfa se perderia. Use o campo ao lado."
+			: "Esta cor não é representável no seletor do sistema (é uma referência ou função). Use o campo ao lado.";
+
+		amostra.addClass("is-sem-seletor");
+		amostra.setAttr("aria-label", motivo);
+		amostra.setAttr("title", motivo);
+
+		// Clicar mesmo assim é o gesto natural: em vez de nada acontecer, o campo de texto ganha o
+		// foco com o valor selecionado — que é o caminho que ela precisava tomar.
+		amostra.setAttr("role", "button");
+		amostra.setAttr("tabindex", "0");
+		amostra.addEventListener("click", () => {
+			entradaTexto.focus();
+			entradaTexto.select();
+		});
 	}
 
 	const confirmar = () => {

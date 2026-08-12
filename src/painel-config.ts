@@ -160,6 +160,22 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 				})
 			);
 
+		// Sem isto, fechar a orientação no `×` seria irreversível — e ela some para sempre, então
+		// não haveria como reaprender a diferença entre token e elemento.
+		new Setting(this.containerEl)
+			.setName("Mostrar as explicações")
+			.setDesc(
+				"A linha com o lampadinha no topo de cada lista, explicando o que são tokens e elementos. Some quando você fecha no ×; ligue aqui para trazê-la de volta."
+			)
+			.addToggle((alternador) =>
+				alternador
+					.setValue(!this.plugin.configuracoes.esconderOrientacao)
+					.onChange(async (valor) => {
+						this.plugin.configuracoes.esconderOrientacao = !valor;
+						await this.plugin.salvarConfiguracoes();
+					})
+			);
+
 		this.containerEl.createDiv({
 			cls: "visual-editor-config-nota",
 			text: "Extrair para variável é a única ação do plugin que acrescenta linha ao arquivo: ela cria a declaração no :root e troca o valor da regra por var(--nome). Todo o resto só reescreve o valor que você editou.",

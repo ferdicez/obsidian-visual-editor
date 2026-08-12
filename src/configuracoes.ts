@@ -47,6 +47,15 @@ export interface ConfiguracoesVisualEditor {
 	 * desfaz.
 	 */
 	esconderArquivosDeMaquina: boolean;
+
+	/**
+	 * Esconder as linhas de orientação no topo das listas?
+	 *
+	 * Nascem visíveis: a distinção entre token e elemento não é óbvia para quem abre a tela, e sem
+	 * ela os controles das duas abas parecem repetidos. Some para sempre quando ela fecha — uma
+	 * explicação que não some vira ruído depois da terceira leitura.
+	 */
+	esconderOrientacao: boolean;
 }
 
 export const CONFIGURACOES_PADRAO: ConfiguracoesVisualEditor = {
@@ -55,6 +64,7 @@ export const CONFIGURACOES_PADRAO: ConfiguracoesVisualEditor = {
 	agrupamento: "secao",
 	mostrarElementos: true,
 	esconderArquivosDeMaquina: true,
+	esconderOrientacao: false,
 };
 
 export async function carregarConfiguracoes(plugin: Plugin): Promise<ConfiguracoesVisualEditor> {

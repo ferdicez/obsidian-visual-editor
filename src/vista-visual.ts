@@ -11,6 +11,7 @@ import {
 } from "./documento";
 import { extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
 import { ModalNomeVariavel, sugerirNome } from "./modal-nome";
+import { PopoverToken } from "./popover-token";
 import type VisualEditorPlugin from "./main";
 import { Campo, humanizar } from "./tipos";
 
@@ -47,6 +48,18 @@ export class VistaVisual extends TextFileView {
 	 * arquivo tem só um dos dois.
 	 */
 	private aba: "tokens" | "elementos" = "tokens";
+
+	/**
+	 * As duas listas lado a lado, em vez de uma aba por vez.
+	 *
+	 * Pedido dela: *"talvez, quando eu clicar em editar, uma sugestão fosse de abrir as duas
+	 * emparelhadas, uma do lado da outra"*. É um modo, não o padrão: numa aba estreita metade da
+	 * largura para cada lista deixa as duas ruins, e o CSS devolve para coluna única sozinho.
+	 */
+	private emparelhado = false;
+
+	/** A janelinha de edição de token, aberta a partir de uma ficha na aba Elementos. */
+	private popover = new PopoverToken();
 
 	private corpo!: HTMLElement;
 	private barra!: HTMLElement;
@@ -109,6 +122,9 @@ export class VistaVisual extends TextFileView {
 	}
 
 	async onClose(): Promise<void> {
+		// A janelinha vive no `body`, fora do `contentEl`: esvaziar a view não a levaria junto, e ela
+		// ficaria órfã na tela depois de fechar a aba.
+		this.popover.fechar();
 		this.contentEl.empty();
 	}
 
@@ -128,6 +144,8 @@ export class VistaVisual extends TextFileView {
 
 		if (this.modoCodigo) {
 			this.desenharCodigo();
+		} else if (this.emparelhadoAtivo) {
+			this.desenharEmparelhado();
 		} else {
 			this.desenharCampos();
 		}
@@ -160,13 +178,15 @@ export class VistaVisual extends TextFileView {
 
 		// As abas só aparecem quando há os dois assuntos: num arquivo de tokens puro, uma aba
 		// "Elementos" vazia seria só um lugar a mais para ela clicar e não achar nada.
-		if (!this.modoCodigo && this.tokens.length > 0 && this.elementos.length > 0) {
+		const temOsDois = this.tokens.length > 0 && this.elementos.length > 0;
+
+		if (!this.modoCodigo && temOsDois && !this.emparelhado) {
 			const abas = esquerda.createDiv({ cls: "ve-abas" });
 
-			const criarAba = (id: "tokens" | "elementos", rotulo: string, quantos: number) => {
+			const criarAba = (id: "tokens" | "elementos", rotulo: string, quantos: number, dica: string) => {
 				const botao = abas.createEl("button", {
 					cls: "ve-aba",
-					attr: { type: "button", "aria-pressed": String(this.aba === id) },
+					attr: { type: "button", "aria-pressed": String(this.aba === id), title: dica },
 				});
 				botao.createSpan({ text: rotulo });
 				botao.createSpan({ cls: "ve-aba-contagem", text: String(quantos) });
@@ -178,8 +198,18 @@ export class VistaVisual extends TextFileView {
 				});
 			};
 
-			criarAba("tokens", "Tokens", this.tokens.length);
-			criarAba("elementos", "Elementos", this.elementos.length);
+			criarAba(
+				"tokens",
+				"Tokens",
+				this.tokens.length,
+				"As variáveis do arquivo. Mudar uma aqui muda em todo lugar que a usa."
+			);
+			criarAba(
+				"elementos",
+				"Elementos",
+				this.elementos.length,
+				"As regras do arquivo (.card, .botao) e qual variável cada uma usa."
+			);
 		}
 
 		const busca = esquerda.createEl("input", {
@@ -202,7 +232,22 @@ export class VistaVisual extends TextFileView {
 		contagem.setText(quantos === 1 ? "1 controle" : `${quantos} controles`);
 
 		// Na aba de elementos não há escolha de agrupamento — é sempre por regra.
-		if (!this.modoCodigo && this.aba !== "elementos") this.desenharSeletorAgrupamento(direita);
+		if (!this.modoCodigo && (this.aba !== "elementos" || this.emparelhadoAtivo)) {
+			this.desenharSeletorAgrupamento(direita);
+		}
+
+		if (!this.modoCodigo && temOsDois) {
+			const botao = botaoIcone(
+				direita,
+				this.emparelhado ? "square" : "columns-2",
+				this.emparelhado ? "Ver uma lista por vez" : "Ver tokens e elementos lado a lado",
+				() => {
+					this.emparelhado = !this.emparelhado;
+					this.desenhar();
+				}
+			);
+			botao.toggleClass("is-ativo", this.emparelhado);
+		}
 
 		botaoIcone(
 			direita,
@@ -226,12 +271,25 @@ export class VistaVisual extends TextFileView {
 		// Na aba de elementos o grupo é sempre a regra: agrupar `.card { padding }` por prefixo do
 		// nome da propriedade separaria as declarações do mesmo elemento, que é o oposto do útil.
 		if (this.aba === "elementos") return "estrutura";
+		return this.agrupamentoDeTokens;
+	}
 
-		const campos = this.camposDaAba;
+	/** O agrupamento válido para a lista de tokens, com o fallback quando o modo não se aplica. */
+	private get agrupamentoDeTokens(): ModoAgrupamento {
 		const escolhido = this.plugin.configuracoes.agrupamento;
-		if (modoDisponivel(campos, escolhido)) return escolhido;
-		if (modoDisponivel(campos, "prefixo")) return "prefixo";
+		if (modoDisponivel(this.tokens, escolhido)) return escolhido;
+		if (modoDisponivel(this.tokens, "prefixo")) return "prefixo";
 		return "estrutura";
+	}
+
+	/**
+	 * O modo emparelhado está ativo de fato?
+	 *
+	 * Só faz sentido quando existem as duas listas — num arquivo de tokens puro, uma coluna
+	 * "Elementos" vazia ao lado seria metade da tela desperdiçada.
+	 */
+	private get emparelhadoAtivo(): boolean {
+		return this.emparelhado && this.tokens.length > 0 && this.elementos.length > 0;
 	}
 
 	/**
@@ -286,25 +344,125 @@ export class VistaVisual extends TextFileView {
 		});
 	}
 
+	/**
+	 * Uma linha explicando o que aquela lista é e o que fazer nela.
+	 *
+	 * Pedido dela: *"adicionar também alguma informação do que faz cada coisa, alguma orientação do
+	 * ladinho"*. A distinção token/elemento é óbvia para quem construiu o plugin e não é para quem
+	 * abre a tela — e sem entendê-la, os controles parecem repetidos entre as duas abas.
+	 *
+	 * É dispensável: o `×` a esconde para sempre. Uma explicação que não some vira ruído depois da
+	 * terceira vez que ela lê.
+	 */
+	private desenharOrientacao(onde: HTMLElement, qual: "tokens" | "elementos"): void {
+		if (this.plugin.configuracoes.esconderOrientacao) return;
+
+		const textos = {
+			tokens: {
+				titulo: "Os valores que se repetem pelo arquivo",
+				texto: "Cada linha é uma variável CSS. Mudar uma aqui muda em todo lugar que a usa — é o jeito de trocar a cor da marca inteira de uma vez.",
+			},
+			elementos: {
+				titulo: "O que cada parte da página usa",
+				texto: "Cada linha é uma propriedade de uma regra. Quando o valor é uma variável, aparece a ficha dela — clique para editar sem sair daqui. Quando é um valor solto, o botão de corrente troca por uma variável ou cria uma nova.",
+			},
+		};
+
+		const conteudo = textos[qual];
+
+		const caixa = onde.createDiv({ cls: "ve-orientacao" });
+		setIcon(caixa.createDiv({ cls: "ve-orientacao-icone" }), "lightbulb");
+
+		const corpo = caixa.createDiv({ cls: "ve-orientacao-corpo" });
+		corpo.createDiv({ cls: "ve-orientacao-titulo", text: conteudo.titulo });
+		corpo.createDiv({ cls: "ve-orientacao-texto", text: conteudo.texto });
+
+		const fechar = caixa.createEl("button", {
+			cls: "ve-orientacao-fechar",
+			attr: { type: "button", "aria-label": "Não mostrar mais estas explicações" },
+		});
+		setIcon(fechar, "x");
+		fechar.addEventListener("click", async () => {
+			this.plugin.configuracoes.esconderOrientacao = true;
+			await this.plugin.salvarConfiguracoes();
+			this.desenhar();
+		});
+	}
+
+	/** O filtro de busca aplicado a uma lista qualquer. */
+	private aplicarFiltro(campos: Campo[]): Campo[] {
+		if (!this.filtro) return campos;
+
+		return campos.filter(
+			(campo) =>
+				campo.rotulo.toLowerCase().includes(this.filtro) ||
+				campo.chave.toLowerCase().includes(this.filtro) ||
+				campo.grupo.toLowerCase().includes(this.filtro) ||
+				// Buscar pelo nome da variável usada acha "quem usa --cor-primaria", que é a
+				// pergunta natural na aba de elementos.
+				(campo.variaveisUsadas ?? []).some((v) => v.toLowerCase().includes(this.filtro))
+		);
+	}
+
+	/** Desenha uma lista agrupada em seções dentro de um container. */
+	private desenharLista(onde: HTMLElement, campos: Campo[], modo: ModoAgrupamento): void {
+		for (const [grupo, lista] of agrupar(campos, modo)) {
+			const secao = onde.createDiv({ cls: "ve-secao" });
+			secao.createDiv({ cls: "ve-secao-titulo", text: humanizar(grupo) });
+
+			for (const campo of lista) {
+				this.desenharCampo(secao, campo);
+			}
+		}
+	}
+
+	/**
+	 * As duas listas lado a lado.
+	 *
+	 * Cada coluna rola por conta própria: uma rolagem só faria a lista curta terminar no meio da
+	 * tela enquanto a longa continua, e o par perderia o sentido.
+	 */
+	private desenharEmparelhado(): void {
+		const grade = this.corpo.createDiv({ cls: "ve-emparelhado" });
+
+		const coluna = (
+			titulo: string,
+			qual: "tokens" | "elementos",
+			campos: Campo[],
+			modo: ModoAgrupamento
+		) => {
+			const el = grade.createDiv({ cls: "ve-coluna" });
+			const cabecalho = el.createDiv({ cls: "ve-coluna-titulo" });
+			cabecalho.createSpan({ text: titulo });
+			cabecalho.createSpan({ cls: "ve-coluna-contagem", text: String(campos.length) });
+
+			const corpo = el.createDiv({ cls: "ve-coluna-corpo" });
+			this.desenharOrientacao(corpo, qual);
+
+			if (campos.length === 0) {
+				corpo.createDiv({
+					cls: "ve-vazio",
+					text: this.filtro ? `Nada para "${this.filtro}".` : "Nada aqui.",
+				});
+				return;
+			}
+
+			this.desenharLista(corpo, campos, modo);
+		};
+
+		coluna("Tokens", "tokens", this.aplicarFiltro(this.tokens), this.agrupamentoDeTokens);
+		coluna("Elementos", "elementos", this.aplicarFiltro(this.elementos), "estrutura");
+	}
+
 	private desenharCampos(): void {
 		if (this.camposDaAba.length === 0) {
 			this.desenharVazio();
 			return;
 		}
 
-		const daAba = this.camposDaAba;
+		this.desenharOrientacao(this.corpo, this.aba === "elementos" ? "elementos" : "tokens");
 
-		const visiveis = this.filtro
-			? daAba.filter(
-					(campo) =>
-						campo.rotulo.toLowerCase().includes(this.filtro) ||
-						campo.chave.toLowerCase().includes(this.filtro) ||
-						campo.grupo.toLowerCase().includes(this.filtro) ||
-						// Buscar pelo nome da variável usada acha "quem usa --cor-primaria", que é a
-						// pergunta natural na aba de elementos.
-						(campo.variaveisUsadas ?? []).some((v) => v.toLowerCase().includes(this.filtro))
-				)
-			: daAba;
+		const visiveis = this.aplicarFiltro(this.camposDaAba);
 
 		if (visiveis.length === 0) {
 			this.corpo.createDiv({
@@ -314,14 +472,7 @@ export class VistaVisual extends TextFileView {
 			return;
 		}
 
-		for (const [grupo, campos] of agrupar(visiveis, this.agrupamentoEfetivo)) {
-			const secao = this.corpo.createDiv({ cls: "ve-secao" });
-			secao.createDiv({ cls: "ve-secao-titulo", text: humanizar(grupo) });
-
-			for (const campo of campos) {
-				this.desenharCampo(secao, campo);
-			}
-		}
+		this.desenharLista(this.corpo, visiveis, this.agrupamentoEfetivo);
 
 		if (this.naoEditaveis > 0) {
 			const nota = this.corpo.createDiv({ cls: "ve-nota" });
@@ -464,13 +615,35 @@ export class VistaVisual extends TextFileView {
 					new Notice(`${nome} não é declarada neste arquivo.`);
 					return;
 				}
-				this.irParaToken(alvo);
+				// A janelinha em vez da troca de aba: editar o token sem perder o lugar na lista de
+				// regras. Ver `popover-token.ts`.
+				this.popover.abrir(
+					ficha,
+					alvo,
+					this.usosDe(alvo.nomeReal),
+					(novo) => this.aplicar(alvo, novo),
+					() => this.irParaToken(alvo)
+				);
 			});
 		}
 
 		// O valor cru fica no title: `padding: var(--sm) var(--lg)` tem texto entre as fichas que as
 		// fichas sozinhas não mostram.
 		caixa.setAttr("title", campo.valor);
+	}
+
+	/**
+	 * Onde um token é usado, em texto legível: `.card`, `@media … › .botao`.
+	 *
+	 * É o que a janelinha mostra abaixo do controle — responde "se eu mexer aqui, o que mais muda?",
+	 * pergunta que o valor sozinho não responde.
+	 */
+	private usosDe(nome: string): string[] {
+		const usos = this.campos
+			.filter((campo) => campo.papel === "propriedade" && (campo.variaveisUsadas ?? []).includes(nome))
+			.map((campo) => `${campo.seletor} · ${campo.propriedade}`);
+
+		return [...new Set(usos)];
 	}
 
 	/** Leva para o token na aba Tokens, filtrando por ele e destacando a linha. */
@@ -691,6 +864,11 @@ export class VistaVisual extends TextFileView {
 
 		// A tela é redesenhada para os deslocamentos novos valerem nos controles. É barato: são
 		// dezenas de elementos, não milhares.
+		//
+		// A janelinha é fechada antes: ela está ancorada numa ficha que o redesenho destrói, e
+		// mantê-la aberta a deixaria apontando para um elemento que não existe mais. O gesto dela
+		// (escolher uma cor) já terminou quando isto roda.
+		this.popover.fechar();
 		this.desenhar();
 	}
 }

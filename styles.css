@@ -125,6 +125,12 @@
 	color: var(--text-normal);
 }
 
+/* Um botão da barra que representa um MODO ligado (o emparelhado), e não uma ação. */
+.visual-editor-vista .ve-botao-icone.is-ativo {
+	background: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+	color: var(--text-normal);
+}
+
 /* --- Corpo rolável -------------------------------------------------------------------------- */
 
 /*
@@ -167,9 +173,16 @@
 	Duas colunas: rótulo à esquerda, controle à direita. A linha divisória entre campos, sem
 	moldura, é o mesmo vocabulário dos painéis de configuração (regra 2 da especificação).
 */
+/*
+	Rótulo | controle | ação.
+
+	A terceira coluna é `auto` e nasce vazia na maioria das linhas — só a aba Elementos põe o botão de
+	corrente ali. Com duas colunas (como era), aquele botão virava um terceiro filho do grid e caía
+	para a linha DE BAIXO, aparecendo solto no meio do nada: era o que fazia a lista parecer confusa.
+*/
 .visual-editor-vista .ve-campo {
 	display: grid;
-	grid-template-columns: minmax(9em, 15em) 1fr;
+	grid-template-columns: minmax(9em, 15em) 1fr auto;
 	gap: 1em;
 	align-items: center;
 	padding: 0.65em 0;
@@ -185,10 +198,19 @@
 	cheia. Na grade de duas colunas as camadas ficariam espremidas em ~60% da aba.
 */
 .visual-editor-vista .ve-campo.is-largo {
-	grid-template-columns: 1fr;
+	grid-template-columns: 1fr auto;
 	align-items: stretch;
 	gap: 0.5em;
 	padding: 0.9em 0;
+}
+
+/* Na linha larga o rótulo ocupa a faixa inteira; o controle vem abaixo dele. */
+.visual-editor-vista .ve-campo.is-largo .ve-campo-rotulo {
+	grid-column: 1 / -1;
+}
+
+.visual-editor-vista .ve-campo.is-largo .ve-acao-var {
+	align-self: start;
 }
 
 .visual-editor-vista .ve-campo-rotulo {
@@ -260,9 +282,15 @@
 
 /* Numa aba estreita, empilhar: 9em de rótulo + slider não cabem lado a lado. */
 @container (max-width: 480px) {
+	/* Aba estreita: rótulo em cima, controle e ação lado a lado embaixo. O botão de corrente fica na
+	   mesma linha do controle para não virar uma terceira faixa solta. */
 	.visual-editor-vista .ve-campo {
-		grid-template-columns: 1fr;
+		grid-template-columns: 1fr auto;
 		gap: 0.4em;
+	}
+
+	.visual-editor-vista .ve-campo .ve-campo-rotulo {
+		grid-column: 1 / -1;
 	}
 }
 
@@ -307,6 +335,22 @@
 
 .visual-editor-vista .ve-swatch.is-clicavel {
 	cursor: pointer;
+}
+
+/*
+	A amostra que NÃO abre o seletor do sistema.
+
+	Ela relatou que uns quadradinhos abriam o seletor e outros não; era deliberado (alfa e `var()`
+	não são representáveis lá), mas indistinguível na tela. A borda tracejada denuncia a diferença de
+	relance, o `title` diz o motivo, e clicar leva o foco ao campo de texto — o caminho certo.
+*/
+.visual-editor-vista .ve-swatch.is-sem-seletor {
+	border-style: dashed;
+	cursor: text;
+}
+
+.visual-editor-vista .ve-swatch.is-sem-seletor:hover {
+	border-color: var(--text-muted);
 }
 
 .visual-editor-vista .ve-swatch.is-clicavel:hover {
@@ -692,6 +736,316 @@
 .visual-editor-modal .setting-item input[type="text"] {
 	width: 100%;
 	font-family: var(--font-monospace);
+}
+
+/* --- Orientação ------------------------------------------------------------------------------ */
+
+/*
+	A linha que explica o que aquela lista é.
+
+	A distinção token/elemento é óbvia para quem fez o plugin e não é para quem abre a tela — sem
+	ela, os controles das duas abas parecem repetidos. O `×` a esconde para sempre.
+*/
+.visual-editor-vista .ve-orientacao {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6em;
+	margin: 0.6em 0 0.4em;
+	padding: 0.7em 0.9em;
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-orientacao-icone {
+	display: flex;
+	flex: 0 0 auto;
+	margin-top: 0.1em;
+	color: var(--text-faint);
+}
+
+.visual-editor-vista .ve-orientacao-icone svg {
+	width: 15px;
+	height: 15px;
+}
+
+.visual-editor-vista .ve-orientacao-corpo {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-orientacao-titulo {
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	margin-bottom: 0.15em;
+}
+
+.visual-editor-vista .ve-orientacao-texto {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	line-height: 1.5;
+}
+
+.visual-editor-vista .ve-orientacao-fechar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	padding: 0.15em;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-faint);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-orientacao-fechar:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-orientacao-fechar svg {
+	width: 13px;
+	height: 13px;
+}
+
+/* --- Modo emparelhado ------------------------------------------------------------------------ */
+
+/*
+	Tokens e elementos lado a lado, a pedido dela.
+
+	Cada coluna rola por conta própria: com uma rolagem só, a lista curta terminaria no meio da tela
+	enquanto a longa continua, e o par perderia o sentido de comparação.
+*/
+.visual-editor-vista .ve-emparelhado {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.2em;
+	height: 100%;
+	min-height: 0;
+}
+
+.visual-editor-vista .ve-coluna {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+}
+
+.visual-editor-vista .ve-coluna-titulo {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	flex: 0 0 auto;
+	padding: 0 0 0.5em;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-vista .ve-coluna-contagem {
+	font-size: var(--font-ui-smaller);
+	font-weight: normal;
+	color: var(--text-faint);
+	background: var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 0 0.4em;
+}
+
+.visual-editor-vista .ve-coluna-corpo {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	min-height: 0;
+	padding-right: 0.4em;
+}
+
+/* O corpo já rola dentro de cada coluna: uma segunda barra de rolagem no container externo faria a
+   página inteira deslizar junto. */
+.visual-editor-vista .ve-corpo:has(.ve-emparelhado) {
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+/*
+	Numa aba estreita, empilhar as duas colunas. Metade de uma aba dividida ao meio não comporta
+	rótulo + controle, e o modo emparelhado viraria duas listas ruins em vez de uma boa.
+*/
+@container (max-width: 780px) {
+	.visual-editor-vista .ve-emparelhado {
+		grid-template-columns: 1fr;
+		height: auto;
+	}
+
+	.visual-editor-vista .ve-coluna-corpo {
+		overflow: visible;
+	}
+
+	.visual-editor-vista .ve-corpo:has(.ve-emparelhado) {
+		overflow-y: auto;
+		display: block;
+	}
+}
+
+/* --- A janelinha do token -------------------------------------------------------------------- */
+
+/*
+	Popover, não modal: a lista continua visível atrás e o gesto de fechar é clicar fora. Um modal
+	escureceria a tela toda para "ajustar um valor e continuar lendo", que é pesado demais.
+
+	Vive no `body` (fora da view) para não ser cortado pelo `overflow` do corpo rolável.
+*/
+.visual-editor-popover {
+	position: fixed;
+	z-index: var(--layer-popover, 30);
+	width: min(22em, calc(100vw - 2em));
+	padding: 0.8em 0.9em;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-s);
+}
+
+.visual-editor-popover .ve-pop-cabecalho {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.visual-editor-popover .ve-pop-nome {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	overflow-wrap: anywhere;
+}
+
+.visual-editor-popover .ve-pop-fechar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	padding: 0.15em;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-faint);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-popover .ve-pop-fechar:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.visual-editor-popover .ve-pop-fechar svg {
+	width: 14px;
+	height: 14px;
+}
+
+.visual-editor-popover .ve-pop-descricao {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	line-height: 1.5;
+	margin-bottom: 0.6em;
+}
+
+/* O controle vem do mesmo desenhador da lista, então herda as classes `.ve-controle`. */
+.visual-editor-popover .ve-pop-controle .ve-controle {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	min-width: 0;
+}
+
+.visual-editor-popover .ve-pop-controle .ve-entrada {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: var(--font-ui-smaller);
+}
+
+.visual-editor-popover .ve-pop-controle .ve-swatch {
+	width: 1.6em;
+	height: 1.6em;
+	flex: 0 0 auto;
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-popover .ve-pop-controle .ve-slider {
+	flex: 1 1 auto;
+	min-width: 4em;
+}
+
+.visual-editor-popover .ve-pop-controle .ve-entrada-numero {
+	flex: 0 0 auto;
+	width: 4em;
+	text-align: right;
+	font-family: var(--font-monospace);
+}
+
+/* Onde mais este token é usado — responde "se eu mexer aqui, o que mais muda?". */
+.visual-editor-popover .ve-pop-usos {
+	margin-top: 0.7em;
+	padding-top: 0.6em;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-popover .ve-pop-usos-titulo {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	margin-bottom: 0.3em;
+}
+
+.visual-editor-popover .ve-pop-uso {
+	font-size: var(--font-ui-smaller);
+	font-family: var(--font-monospace);
+	color: var(--text-muted);
+	padding: 0.1em 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.visual-editor-popover .ve-pop-uso-mais {
+	font-family: var(--font-ui);
+	font-style: italic;
+	color: var(--text-faint);
+}
+
+.visual-editor-popover .ve-pop-ir {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4em;
+	width: 100%;
+	margin-top: 0.7em;
+	padding: 0.35em;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-popover .ve-pop-ir:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.visual-editor-popover .ve-pop-ir-icone {
+	display: flex;
+}
+
+.visual-editor-popover .ve-pop-ir-icone svg {
+	width: 13px;
+	height: 13px;
 }
 
 /* --- Modo código ---------------------------------------------------------------------------- */
