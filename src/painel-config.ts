@@ -22,6 +22,7 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 
 		this.montarExtensoes();
 		this.montarAbertura();
+		this.montarElementos();
 
 		containerEl.scrollTop = scrollAnterior;
 	}
@@ -58,6 +59,34 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 		this.containerEl.createDiv({
 			cls: "visual-editor-config-nota",
 			text: "Mudanças nesta lista valem depois de reiniciar o Obsidian (ou desativar e reativar o plugin).",
+		});
+	}
+
+	/**
+	 * A aba "Elementos" — as regras `.card { … }` além dos tokens.
+	 *
+	 * Configurável porque a utilidade depende do arquivo: num `tokens.css` puro não há regra nenhuma
+	 * e a opção não muda nada, mas num CSS de página as regras podem ser o que ela quer ver — ou
+	 * ruído, se ela só foi ali ajustar uma cor.
+	 */
+	private montarElementos(): void {
+		const config = this.plugin.configuracoes;
+
+		new Setting(this.containerEl)
+			.setName("Mostrar os elementos")
+			.setDesc(
+				"Ligado, o editor ganha a aba “Elementos” com as regras do arquivo (.card, .botao) — dá para ver que variável cada uma usa, trocar por outra ou extrair um valor para variável nova. Desligado, só os tokens aparecem."
+			)
+			.addToggle((alternador) =>
+				alternador.setValue(config.mostrarElementos).onChange(async (valor) => {
+					this.plugin.configuracoes.mostrarElementos = valor;
+					await this.plugin.salvarConfiguracoes();
+				})
+			);
+
+		this.containerEl.createDiv({
+			cls: "visual-editor-config-nota",
+			text: "Extrair para variável é a única ação do plugin que acrescenta linha ao arquivo: ela cria a declaração no :root e troca o valor da regra por var(--nome). Todo o resto só reescreve o valor que você editou.",
 		});
 	}
 

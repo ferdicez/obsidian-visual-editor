@@ -1,4 +1,5 @@
 import { Plugin } from "obsidian";
+import type { ModoAgrupamento } from "./documento";
 
 export interface ConfiguracoesVisualEditor {
 	/**
@@ -17,11 +18,32 @@ export interface ConfiguracoesVisualEditor {
 	 * pelo botão de alternar, que é o que ela escolheu na conversa de desenho.
 	 */
 	abrirNaInterface: boolean;
+
+	/**
+	 * Como as seções da tela são formadas. Ela troca na barra da view, não no painel.
+	 *
+	 * Fica guardado aqui porque é preferência, não estado do arquivo: escolher "por seção" num
+	 * `global.css` e reabrir no dia seguinte no modo antigo seria trabalho repetido. O padrão é
+	 * "secao" — quando o arquivo tem cabeçalhos, é o agrupamento que ela mesma escreveu; quando não
+	 * tem, a view cai para o próximo modo disponível sozinha.
+	 */
+	agrupamento: ModoAgrupamento;
+
+	/**
+	 * Mostrar a aba "Elementos" (as regras `.card { … }`), além dos tokens?
+	 *
+	 * Ligado por padrão: foi o que ela pediu — ver que variável cada elemento usa e poder atribuir.
+	 * Desligar devolve o plugin ao comportamento de só tokens, para um arquivo onde as regras são
+	 * ruído. As regras nunca são reescritas por estarem à vista; só o que ela editar.
+	 */
+	mostrarElementos: boolean;
 }
 
 export const CONFIGURACOES_PADRAO: ConfiguracoesVisualEditor = {
 	extensoes: "css",
 	abrirNaInterface: false,
+	agrupamento: "secao",
+	mostrarElementos: true,
 };
 
 export async function carregarConfiguracoes(plugin: Plugin): Promise<ConfiguracoesVisualEditor> {

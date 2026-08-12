@@ -1,5 +1,6 @@
 import { setIcon } from "obsidian";
 import { corTemAlfa, paraHex, partirMedida } from "./deduzir";
+import { CamadaSombra, Medida, camadaPadrao, separarCamadas, sombraParaTexto } from "./sombra";
 import { Campo } from "./tipos";
 
 /**
@@ -284,26 +285,269 @@ function desenharFonte(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
 	});
 }
 
-/** Sombra: campo de texto com um quadrado de prévia aplicando a sombra de verdade. */
+/**
+ * Sombra: prévia grande + uma linha de controles POR CAMADA.
+ *
+ * Como campo de texto único (o desenho anterior) uma sombra de três camadas era pior de editar do
+ * que o CSS cru: 120 caracteres numa linha, onde mexer no desfoque da segunda camada exige contar
+ * vírgulas dentro de `rgba()`. Agora cada camada tem sua cor, seu deslocamento e seu desfoque.
+ *
+ * O campo de texto continua existindo, recolhido: é a saída para o que os controles não alcançam, e
+ * a forma de ela conferir exatamente o que vai para o arquivo.
+ */
 function desenharSombra(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
 	const caixa = pai.createDiv({ cls: "ve-controle ve-controle-sombra" });
 
-	const entrada = caixa.createEl("input", {
-		cls: "ve-entrada",
+	let camadas = separarCamadas(campo.valor);
+
+	// A prévia é um bloco de verdade com a sombra aplicada, e não um quadradinho: uma sombra de
+	// assentamento (a dela) só se lê num retângulo com alguma área.
+	const palco = caixa.createDiv({ cls: "ve-sombra-palco" });
+	const previa = palco.createDiv({ cls: "ve-previa-sombra" });
+	previa.style.boxShadow = campo.valor;
+
+	const listaEl = caixa.createDiv({ cls: "ve-sombra-camadas" });
+	const rodape = caixa.createDiv({ cls: "ve-sombra-rodape" });
+
+	// O texto cru fica recolhido: é escape e conferência, não o caminho principal. Declarado aqui,
+	// antes de quem o usa, porque `atualizar` escreve nele a cada gesto.
+	const detalhes = caixa.createEl("details", { cls: "ve-sombra-texto" });
+	detalhes.createEl("summary", { text: "Ver o valor" });
+
+	const entradaTexto = detalhes.createEl("input", {
+		cls: "ve-entrada ve-entrada-cor",
 		attr: { type: "text", spellcheck: "false", value: campo.valor },
 	});
 
-	const previa = caixa.createDiv({ cls: "ve-previa-sombra" });
-	previa.style.boxShadow = campo.valor;
+	/**
+	 * A prévia acompanha o gesto, mas o arquivo só é tocado no fim dele.
+	 *
+	 * `gravar: false` é o que roda no `input` do slider/seletor de cor — mesma regra dos outros
+	 * controles, e aqui ela importa ainda mais: uma sombra tem vários controles, e gravar em cada
+	 * um dispararia o hot reload dela em rajada.
+	 */
+	const atualizar = (gravar: boolean) => {
+		const texto = sombraParaTexto(camadas);
+		previa.style.boxShadow = texto;
+		entradaTexto.value = texto;
+		if (gravar && texto !== campo.valor) aoMudar(texto);
+	};
 
-	entrada.addEventListener("input", () => {
-		previa.style.boxShadow = entrada.value;
+	const redesenhar = () => {
+		listaEl.empty();
+		camadas.forEach((camada, indice) => {
+			desenharCamadaSombra(listaEl, camada, indice, camadas.length, {
+				aoAlterar: atualizar,
+				aoRemover: () => {
+					// A última camada não é removível: uma sombra sem camada nenhuma teria de virar
+					// `none`, que é uma decisão diferente de "ajustar a sombra" — e o campo de texto
+					// está logo abaixo para quem quiser fazer isso de propósito.
+					if (camadas.length <= 1) return;
+					camadas = camadas.filter((_, i) => i !== indice);
+					redesenhar();
+					atualizar(true);
+				},
+			});
+		});
+	};
+
+	const confirmarTexto = () => {
+		const novo = entradaTexto.value.trim();
+		if (novo === campo.valor) return;
+		// Reler as camadas do texto que ela digitou mantém os controles e o texto falando do mesmo
+		// valor; sem isto, editar aqui e depois mexer num slider descartaria o que ela escreveu.
+		camadas = separarCamadas(novo);
+		previa.style.boxShadow = novo;
+		redesenhar();
+		aoMudar(novo);
+	};
+
+	entradaTexto.addEventListener("blur", confirmarTexto);
+	entradaTexto.addEventListener("keydown", (evento) => {
+		if (evento.key === "Enter") {
+			evento.preventDefault();
+			entradaTexto.blur();
+		}
+	});
+
+	const adicionar = rodape.createEl("button", {
+		cls: "ve-sombra-adicionar",
+		attr: { type: "button" },
+	});
+	setIcon(adicionar.createSpan({ cls: "ve-sombra-adicionar-icone" }), "plus");
+	adicionar.createSpan({ text: "Camada" });
+	adicionar.addEventListener("click", () => {
+		camadas = [...camadas, camadaPadrao()];
+		redesenhar();
+		atualizar(true);
+	});
+
+	redesenhar();
+}
+
+interface AcoesCamada {
+	aoAlterar: (gravar: boolean) => void;
+	aoRemover: () => void;
+}
+
+/**
+ * Uma camada: cor, X, Y, desfoque, espalhamento, e o interruptor de sombra interna.
+ *
+ * Camada que o leitor não decompôs (um `var(--sombra-base)`) aparece como texto travado, com o
+ * motivo — em vez de sumir da lista, o que faria a prévia e os controles discordarem.
+ */
+function desenharCamadaSombra(
+	pai: HTMLElement,
+	camada: CamadaSombra,
+	indice: number,
+	total: number,
+	acoes: AcoesCamada
+): void {
+	const linha = pai.createDiv({ cls: "ve-sombra-camada" });
+
+	if (!camada.partes) {
+		linha.addClass("is-crua");
+		linha.createSpan({ cls: "ve-sombra-crua", text: camada.original });
+		linha.setAttr("title", "Esta camada usa uma expressão que a interface não decompõe — ela fica intacta.");
+		return;
+	}
+
+	const partes = camada.partes;
+
+	// Cor da camada. O seletor nativo não representa alfa, e sombra quase sempre tem alfa — então a
+	// amostra abre o seletor só quando o valor é opaco, e o resto vai pelo campo de texto ao lado.
+	const cor = partes.cor ?? "currentColor";
+	const amostra = linha.createDiv({ cls: "ve-swatch ve-sombra-swatch" });
+	amostra.style.background = cor;
+	if (corTemAlfa(cor)) amostra.addClass("is-alfa");
+
+	const hex = paraHex(cor, pai.doc);
+	if (hex !== null && !corTemAlfa(cor)) {
+		const seletor = linha.createEl("input", {
+			cls: "ve-seletor-cor",
+			attr: { type: "color", value: hex },
+		});
+		amostra.addClass("is-clicavel");
+		amostra.setAttr("role", "button");
+		amostra.setAttr("tabindex", "0");
+		amostra.setAttr("aria-label", `Cor da camada ${indice + 1}`);
+		amostra.addEventListener("click", () => seletor.click());
+		amostra.addEventListener("keydown", (evento) => {
+			if (evento.key === "Enter" || evento.key === " ") {
+				evento.preventDefault();
+				seletor.click();
+			}
+		});
+		seletor.addEventListener("input", () => {
+			partes.cor = seletor.value;
+			amostra.style.background = seletor.value;
+			acoes.aoAlterar(false);
+		});
+		seletor.addEventListener("change", () => {
+			partes.cor = seletor.value;
+			amostra.style.background = seletor.value;
+			acoes.aoAlterar(true);
+		});
+	} else {
+		amostra.setAttr("aria-label", `Cor da camada ${indice + 1} — edite pelo campo ao lado`);
+	}
+
+	const entradaCor = linha.createEl("input", {
+		cls: "ve-entrada ve-sombra-cor-texto",
+		attr: { type: "text", spellcheck: "false", value: partes.cor ?? "" },
+	});
+	entradaCor.addEventListener("blur", () => {
+		const novo = entradaCor.value.trim();
+		partes.cor = novo || null;
+		amostra.style.background = novo || "currentColor";
+		amostra.toggleClass("is-alfa", corTemAlfa(novo));
+		acoes.aoAlterar(true);
+	});
+	entradaCor.addEventListener("keydown", (evento) => {
+		if (evento.key === "Enter") {
+			evento.preventDefault();
+			entradaCor.blur();
+		}
+	});
+
+	// Os quatro números. Cada um com sua sigla, porque "x/y/desfoque/espalhamento" por extenso não
+	// cabe na linha e a sigla é o vocabulário do próprio CSS.
+	const numeros = linha.createDiv({ cls: "ve-sombra-numeros" });
+	medidaDaCamada(numeros, "X", partes.x, "Deslocamento horizontal", (m) => {
+		partes.x = m;
+	}, acoes);
+	medidaDaCamada(numeros, "Y", partes.y, "Deslocamento vertical", (m) => {
+		partes.y = m;
+	}, acoes);
+	medidaDaCamada(numeros, "Desfoque", partes.desfoque ?? { numero: 0, unidade: "px" }, "Desfoque", (m) => {
+		partes.desfoque = m;
+	}, acoes);
+	medidaDaCamada(
+		numeros,
+		"Espalh.",
+		partes.espalhamento ?? { numero: 0, unidade: "px" },
+		"Espalhamento — quanto a sombra cresce ou encolhe antes de desfocar",
+		(m) => {
+			// Zero é o padrão do CSS: gravar `0px` explicitamente só aumentaria o valor sem mudar nada.
+			partes.espalhamento = m.numero === 0 ? null : m;
+		},
+		acoes
+	);
+
+	const acoesEl = linha.createDiv({ cls: "ve-sombra-acoes" });
+
+	const interna = acoesEl.createEl("button", {
+		cls: "ve-botao-icone ve-sombra-interna",
+		attr: {
+			type: "button",
+			"aria-label": partes.interna ? "Sombra interna (clique para externa)" : "Sombra externa (clique para interna)",
+			"aria-pressed": String(partes.interna),
+		},
+	});
+	setIcon(interna, partes.interna ? "corner-down-right" : "corner-up-right");
+	interna.toggleClass("is-ativo", partes.interna);
+	interna.addEventListener("click", () => {
+		partes.interna = !partes.interna;
+		acoes.aoAlterar(true);
+	});
+
+	if (total > 1) {
+		const remover = acoesEl.createEl("button", {
+			cls: "ve-botao-icone ve-sombra-remover",
+			attr: { type: "button", "aria-label": `Remover a camada ${indice + 1}` },
+		});
+		setIcon(remover, "trash-2");
+		remover.addEventListener("click", acoes.aoRemover);
+	}
+}
+
+/** Um número da camada, com a sigla acima. Confirma no blur e no Enter, como os outros campos. */
+function medidaDaCamada(
+	pai: HTMLElement,
+	sigla: string,
+	medida: Medida,
+	titulo: string,
+	aplicar: (medida: Medida) => void,
+	acoes: AcoesCamada
+): void {
+	const bloco = pai.createDiv({ cls: "ve-sombra-medida" });
+	bloco.setAttr("title", titulo);
+	bloco.createSpan({ cls: "ve-sombra-sigla", text: sigla });
+
+	const entrada = bloco.createEl("input", {
+		cls: "ve-entrada ve-sombra-numero",
+		attr: { type: "number", step: "1", value: String(medida.numero) },
 	});
 
 	const confirmar = () => {
-		const novo = entrada.value.trim();
-		if (novo === campo.valor) return;
-		aoMudar(novo);
+		const bruto = entrada.value.trim();
+		if (bruto === "") return;
+		const numero = parseFloat(bruto);
+		if (Number.isNaN(numero)) return;
+		// A unidade original é preservada: um `0.5rem` continua em `rem` depois de ela digitar 0,8.
+		// A exceção é o zero sem unidade — passar a valer 4 exige uma unidade, e `px` é a do CSS.
+		aplicar({ numero, unidade: medida.unidade || (numero === 0 ? "" : "px") });
+		acoes.aoAlterar(true);
 	};
 
 	entrada.addEventListener("blur", confirmar);

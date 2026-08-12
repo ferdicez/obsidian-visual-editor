@@ -71,13 +71,64 @@ export function escrever(
 	return aplicarValores(original, camposSerializados, serializados);
 }
 
-/** Agrupa os campos na ordem em que os grupos aparecem, para a interface desenhar seções. */
-export function agrupar(campos: Campo[]): Map<string, Campo[]> {
-	const grupos = new Map<string, Campo[]>();
-	for (const campo of campos) {
-		const lista = grupos.get(campo.grupo);
-		if (lista) lista.push(campo);
-		else grupos.set(campo.grupo, [campo]);
+/**
+ * Como a tela é dividida em seções. A escolha é dela, na barra da view.
+ *
+ * Nenhum dos três é certo sempre: um `global.css` bem comentado fica ótimo em "secao", um sem
+ * comentário nenhum só se organiza por "prefixo", e "estrutura" é o único que mostra a verdade
+ * quando a mesma variável aparece em contextos diferentes (tema escuro, media query).
+ */
+export type ModoAgrupamento = "secao" | "prefixo" | "estrutura";
+
+/** Onde caem os campos que o modo escolhido não sabe classificar. */
+const SEM_GRUPO = "Outros";
+
+/**
+ * O modo faz sentido para estes campos?
+ *
+ * Serve para a barra não oferecer uma opção que resultaria numa tela pior: agrupar por seção um
+ * arquivo sem nenhum comentário de seção jogaria tudo em "Outros", e ela ficaria achando que o
+ * plugin quebrou. A opção some em vez de mentir.
+ */
+export function modoDisponivel(campos: Campo[], modo: ModoAgrupamento): boolean {
+	switch (modo) {
+		case "secao":
+			return campos.some((campo) => campo.secao);
+		case "prefixo":
+			return campos.some((campo) => campo.prefixo);
+		case "estrutura":
+			return true;
 	}
+}
+
+/** Agrupa os campos na ordem em que os grupos aparecem, para a interface desenhar seções. */
+export function agrupar(campos: Campo[], modo: ModoAgrupamento = "estrutura"): Map<string, Campo[]> {
+	const grupos = new Map<string, Campo[]>();
+
+	for (const campo of campos) {
+		const nome = nomeDoGrupo(campo, modo);
+		const lista = grupos.get(nome);
+		if (lista) lista.push(campo);
+		else grupos.set(nome, [campo]);
+	}
+
+	// "Outros" vai para o fim: é a sobra, e ela não deve abrir a tela olhando para a sobra.
+	const sobra = grupos.get(SEM_GRUPO);
+	if (sobra && grupos.size > 1) {
+		grupos.delete(SEM_GRUPO);
+		grupos.set(SEM_GRUPO, sobra);
+	}
+
 	return grupos;
+}
+
+function nomeDoGrupo(campo: Campo, modo: ModoAgrupamento): string {
+	switch (modo) {
+		case "secao":
+			return campo.secao ?? SEM_GRUPO;
+		case "prefixo":
+			return campo.prefixo ?? SEM_GRUPO;
+		case "estrutura":
+			return campo.grupo;
+	}
 }

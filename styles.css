@@ -48,6 +48,59 @@
 	font-size: var(--font-ui-small);
 }
 
+/*
+	Abas Tokens / Elementos.
+
+	Sublinhadas, no padrão dos painéis de configuração — mas aqui elas separam dois ASSUNTOS ("quanto
+	vale este token" e "que token este elemento usa"), que numa lista só viraria dezenas de itens
+	onde ela procura um.
+*/
+.visual-editor-vista .ve-abas {
+	display: flex;
+	align-items: center;
+	gap: 0.15em;
+	flex: 0 0 auto;
+}
+
+.visual-editor-vista .ve-aba {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	padding: 0.3em 0.7em;
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	cursor: pointer;
+}
+
+.visual-editor-vista .ve-aba:hover {
+	color: var(--text-normal);
+	background: transparent;
+}
+
+.visual-editor-vista .ve-aba.is-ativa {
+	color: var(--text-normal);
+	border-bottom-color: var(--interactive-accent);
+}
+
+.visual-editor-vista .ve-aba-contagem {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	background: var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 0 0.4em;
+	line-height: 1.4;
+}
+
+.visual-editor-vista .ve-aba.is-ativa .ve-aba-contagem {
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+}
+
 .visual-editor-vista .ve-contagem {
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
@@ -124,8 +177,25 @@
 	border-bottom: none;
 }
 
+/*
+	Sombra ocupa a linha inteira: o rótulo vira cabeçalho e os controles vêm abaixo, em largura
+	cheia. Na grade de duas colunas as camadas ficariam espremidas em ~60% da aba.
+*/
+.visual-editor-vista .ve-campo.is-largo {
+	grid-template-columns: 1fr;
+	align-items: stretch;
+	gap: 0.5em;
+	padding: 0.9em 0;
+}
+
 .visual-editor-vista .ve-campo-rotulo {
 	min-width: 0;
+}
+
+.visual-editor-vista .ve-campo-cabecalho {
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
 }
 
 .visual-editor-vista .ve-campo-nome {
@@ -139,6 +209,50 @@
 	color: var(--text-muted);
 	margin-top: 0.15em;
 	overflow-wrap: anywhere;
+}
+
+/*
+	O (i) que abre a explicação longa.
+
+	Uma descrição de doze linhas expandida por padrão empurra o controle para o meio de um paredão de
+	texto e mata a leitura da lista — o texto continua inteiro, a um clique.
+*/
+.visual-editor-vista .ve-campo-info {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	padding: 0;
+	width: 1.3em;
+	height: 1.3em;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-faint);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-campo-info:hover,
+.visual-editor-vista .ve-campo-info.is-ativo {
+	color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+}
+
+.visual-editor-vista .ve-campo-info svg {
+	width: 0.95em;
+	height: 0.95em;
+}
+
+/*
+	Explicação aberta: recuada e com uma guia à esquerda, para ela ver de relance que aquilo é
+	comentário do arquivo e não mais um controle.
+*/
+.visual-editor-vista .ve-campo-descricao-longa {
+	margin-top: 0.4em;
+	padding-left: 0.7em;
+	border-left: 2px solid var(--background-modifier-border);
+	line-height: 1.5;
 }
 
 /* Numa aba estreita, empilhar: 9em de rótulo + slider não cabem lado a lado. */
@@ -235,11 +349,16 @@
 	min-width: 5em;
 }
 
+/*
+	O número e a unidade não encolhem: numa aba estreita o slider é que cede. Sem isto o valor sai do
+	enquadramento e sobra um slider sem número — que é arrastar no escuro.
+*/
 .visual-editor-vista .ve-entrada-numero {
 	flex: 0 0 auto;
-	width: 5.5em;
+	width: 4.5em;
 	text-align: right;
 	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
 }
 
 .visual-editor-vista .ve-unidade {
@@ -247,7 +366,7 @@
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
 	font-family: var(--font-monospace);
-	min-width: 2em;
+	min-width: 1.8em;
 }
 
 /* Fonte */
@@ -262,16 +381,314 @@
 	white-space: nowrap;
 }
 
-/* Sombra */
+/* --- Sombra ---------------------------------------------------------------------------------- */
 
-.visual-editor-vista .ve-previa-sombra {
-	flex: 0 0 auto;
-	width: 2.2em;
-	height: 2.2em;
-	margin: 0.3em;
+/*
+	A sombra é o único controle que ocupa a linha inteira (`.ve-campo.is-largo`): são várias camadas,
+	cada uma com cor e quatro números. Espremida na coluna da direita ela viraria uma pilha ilegível.
+*/
+.visual-editor-vista .ve-controle-sombra {
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.6em;
+	width: 100%;
+}
+
+/*
+	O palco existe para a prévia ter contraste: uma sombra clara sobre o fundo primário some, e é
+	justamente a sombra clara e sutil que precisa ser vista para ser ajustada.
+*/
+.visual-editor-vista .ve-sombra-palco {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.6em 1em;
+	background: var(--background-secondary);
 	border-radius: var(--radius-s);
+}
+
+/* Um retângulo com área, não um quadradinho: sombra de assentamento só se lê num bloco de verdade. */
+.visual-editor-vista .ve-previa-sombra {
+	width: 60%;
+	max-width: 16em;
+	height: 3.2em;
+	border-radius: var(--radius-m);
 	background: var(--background-primary);
+}
+
+.visual-editor-vista .ve-sombra-camadas {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35em;
+}
+
+.visual-editor-vista .ve-sombra-camada {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	padding: 0.35em 0.5em;
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+}
+
+.visual-editor-vista .ve-sombra-swatch {
+	width: 1.5em;
+	height: 1.5em;
+}
+
+.visual-editor-vista .ve-sombra-cor-texto {
+	flex: 1 1 7em;
+	min-width: 5em;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+}
+
+.visual-editor-vista .ve-sombra-numeros {
+	display: flex;
+	align-items: center;
+	gap: 0.3em;
+	flex: 0 0 auto;
+}
+
+/* Sigla acima do número: "X" cabe onde "Deslocamento horizontal" não caberia. O nome inteiro está
+   no `title` de cada bloco. */
+.visual-editor-vista .ve-sombra-medida {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.1em;
+}
+
+.visual-editor-vista .ve-sombra-sigla {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.visual-editor-vista .ve-sombra-numero {
+	width: 4em;
+	text-align: center;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	padding: 0.2em 0.3em;
+}
+
+.visual-editor-vista .ve-sombra-acoes {
+	display: flex;
+	align-items: center;
+	gap: 0.15em;
+	margin-left: auto;
+}
+
+.visual-editor-vista .ve-sombra-interna.is-ativo {
+	color: var(--interactive-accent);
+}
+
+.visual-editor-vista .ve-sombra-remover:hover {
+	color: var(--text-error);
+}
+
+/* A camada que a interface não decompôs continua visível — some, e a prévia discordaria da lista. */
+.visual-editor-vista .ve-sombra-camada.is-crua {
+	opacity: 0.75;
+}
+
+.visual-editor-vista .ve-sombra-crua {
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	overflow-wrap: anywhere;
+}
+
+.visual-editor-vista .ve-sombra-rodape {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+
+.visual-editor-vista .ve-sombra-adicionar {
+	display: flex;
+	align-items: center;
+	gap: 0.3em;
+	padding: 0.25em 0.6em;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-sombra-adicionar:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-sombra-adicionar-icone {
+	display: flex;
+}
+
+.visual-editor-vista .ve-sombra-adicionar-icone svg {
+	width: 0.9em;
+	height: 0.9em;
+}
+
+/* O texto cru: conferência e escape, recolhido para não competir com os controles. */
+.visual-editor-vista .ve-sombra-texto > summary {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	cursor: pointer;
+	list-style: none;
+	padding: 0.15em 0;
+}
+
+.visual-editor-vista .ve-sombra-texto > summary::-webkit-details-marker {
+	display: none;
+}
+
+.visual-editor-vista .ve-sombra-texto > summary::before {
+	content: "›";
+	display: inline-block;
+	margin-right: 0.4em;
+	transition: transform 100ms ease;
+}
+
+.visual-editor-vista .ve-sombra-texto[open] > summary::before {
+	transform: rotate(90deg);
+}
+
+.visual-editor-vista .ve-sombra-texto > summary:hover {
+	color: var(--text-muted);
+}
+
+.visual-editor-vista .ve-sombra-texto .ve-entrada {
+	width: 100%;
+	margin-top: 0.3em;
+	font-size: var(--font-ui-smaller);
+}
+
+/* Numa aba estreita, a camada empilha: cor em cima, números embaixo. */
+@container (max-width: 620px) {
+	.visual-editor-vista .ve-sombra-camada {
+		flex-wrap: wrap;
+	}
+
+	.visual-editor-vista .ve-sombra-numeros {
+		width: 100%;
+		justify-content: space-between;
+	}
+
+	.visual-editor-vista .ve-sombra-acoes {
+		margin-left: 0;
+	}
+}
+
+/* --- Ligação com variável (aba Elementos) ---------------------------------------------------- */
+
+/*
+	Uma propriedade que usa `var(--x)` mostra a FICHA da variável em vez de um campo de texto.
+
+	O motivo é honestidade: o valor daquela linha não é dela, é do token. Um campo editável ali
+	trocaria `var(--x)` por um literal e desfaria a ligação sem ela pedir.
+*/
+.visual-editor-vista .ve-controle-ligacao {
+	flex-wrap: wrap;
+	gap: 0.3em;
+}
+
+.visual-editor-vista .ve-ficha-var {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4em;
+	padding: 0.2em 0.6em;
+	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	box-shadow: none;
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+	max-width: 100%;
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-ficha-var:hover {
+	border-color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+}
+
+.visual-editor-vista .ve-ficha-ponto {
+	flex: 0 0 auto;
+	width: 0.8em;
+	height: 0.8em;
+	border-radius: 50%;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-vista .ve-ficha-nome {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.visual-editor-vista .ve-ficha-valor {
+	color: var(--text-faint);
+	flex: 0 0 auto;
+}
+
+/* Variável usada mas não declarada aqui — costuma vir de outro arquivo, e não é erro. */
+.visual-editor-vista .ve-ficha-var.is-externa {
+	border-style: dashed;
+}
+
+.visual-editor-vista .ve-ficha-var.is-externa .ve-ficha-nome {
+	color: var(--text-muted);
+}
+
+.visual-editor-vista .ve-acao-var {
+	flex: 0 0 auto;
+	align-self: center;
+}
+
+/*
+	O destaque de "cheguei aqui vindo de um elemento".
+
+	Temporário de propósito: some sozinho depois de ela achar a linha, sem virar mais um estado
+	permanente na tela.
+*/
+.visual-editor-vista .ve-campo.is-destacado {
+	background: var(--text-selection);
+	border-radius: var(--radius-s);
+	transition: background 400ms ease;
+}
+
+/* --- Modal de extrair variável --------------------------------------------------------------- */
+
+.visual-editor-modal .ve-modal-nota {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.5;
+	margin-bottom: 0.8em;
+}
+
+.visual-editor-modal .ve-modal-aviso {
+	display: none;
+	color: var(--text-error);
+	font-size: var(--font-ui-smaller);
+	padding: 0 0 0.6em;
+}
+
+.visual-editor-modal .ve-modal-aviso.is-visivel {
+	display: block;
+}
+
+/* O campo do nome merece a largura toda: nomes de token são compridos. */
+.visual-editor-modal .setting-item input[type="text"] {
+	width: 100%;
+	font-family: var(--font-monospace);
 }
 
 /* --- Modo código ---------------------------------------------------------------------------- */

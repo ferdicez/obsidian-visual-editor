@@ -45,6 +45,44 @@ export interface Campo {
 	fim: number;
 	/** Seção onde o campo é agrupado na tela (o seletor CSS, o objeto pai do JSON…). */
 	grupo: string;
+	/**
+	 * Título da seção declarada no arquivo (`/* === Cores === *​/`), quando existe.
+	 *
+	 * É o agrupamento que respeita a organização que ela já escreveu: o seletor CSS joga o arquivo
+	 * inteiro num `:root` só, e o comentário de seção é a intenção dela, não a estrutura da
+	 * linguagem.
+	 */
+	secao?: string;
+	/** Prefixo do nome (`--color-linha` → "color"), para agrupar sem depender de comentário. */
+	prefixo?: string;
+	/**
+	 * O papel do campo no arquivo.
+	 *
+	 * `variavel` é uma declaração de custom property (`--cor: red`) — o token em si. `propriedade` é
+	 * uma declaração comum dentro de uma regra (`.card { padding: 16px }`) — o USO. A distinção
+	 * importa porque só propriedade pode ser ligada a uma variável, e só variável pode ser o alvo
+	 * dessa ligação.
+	 *
+	 * Ausente significa `variavel`: os leitores de JSON e texto não têm essa noção, e os campos
+	 * gravados antes desta distinção existir continuam válidos.
+	 */
+	papel?: "variavel" | "propriedade";
+	/** Só para `propriedade`: o seletor da regra onde ela mora (`.card`, `.botao:hover`). */
+	seletor?: string;
+	/**
+	 * Só para `propriedade`: o nome CSS da propriedade (`box-shadow`, `padding`).
+	 *
+	 * Separado de `rotulo` porque o rótulo é humanizado para leitura e este é o nome exato — é por
+	 * ele que se decide quais variáveis fazem sentido oferecer no menu de ligação.
+	 */
+	propriedade?: string;
+	/**
+	 * Só para `propriedade`: as variáveis que o valor já referencia.
+	 *
+	 * `padding: var(--sm) var(--lg)` tem duas. Vazio significa valor literal — o candidato natural
+	 * para a extração.
+	 */
+	variaveisUsadas?: string[];
 	/** Comentário encontrado junto do campo, mostrado como descrição. */
 	descricao?: string;
 	/** Para o tipo "opcoes": os valores aceitos. */
