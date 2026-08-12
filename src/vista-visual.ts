@@ -39,6 +39,8 @@ export class VistaVisual extends TextFileView {
 	private formato: Formato = "css";
 	private campos: Campo[] = [];
 	private naoEditaveis = 0;
+	/** Seletor → comentário escrito acima da regra, para o (i) do cabeçalho. Ver `ler-css.ts`. */
+	private descricoesDeRegra: Map<string, string> = new Map();
 
 	/** Modo código mostra o texto cru numa textarea, para ela conferir ou editar à mão. */
 	private modoCodigo = false;
@@ -122,6 +124,7 @@ export class VistaVisual extends TextFileView {
 		const documento = ler(dados, this.formato);
 		this.campos = documento.campos;
 		this.naoEditaveis = documento.naoEditaveis;
+		this.descricoesDeRegra = documento.descricoesDeRegra ?? new Map();
 
 		// O histórico é reiniciado só quando o texto vem de FORA — abrir o arquivo, ou ele mudar no
 		// disco pelo editor de código dela.
@@ -141,6 +144,7 @@ export class VistaVisual extends TextFileView {
 		this.texto = "";
 		this.campos = [];
 		this.naoEditaveis = 0;
+		this.descricoesDeRegra = new Map();
 	}
 
 	async onOpen(): Promise<void> {
@@ -640,21 +644,27 @@ export class VistaVisual extends TextFileView {
 	 */
 	private desenharInfoSeletor(cabecalho: HTMLElement, seletor: string): void {
 		const partes = explicarSeletor(seletor);
-		// Sem nenhuma tradução, o (i) não teria o que dizer além de repetir o título.
-		if (!partes.some((parte) => parte.explicacao)) return;
+		const descricao = this.descricoesDeRegra.get(seletor);
+
+		// Sem tradução E sem descrição, o (i) não teria o que dizer além de repetir o título.
+		//
+		// A descrição sozinha basta: a maioria das regras não tem condição nenhuma (`.texto-rico
+		// blockquote` não tem `:hover` nem `@media`), e eram justamente essas que ficavam sem (i) —
+		// as que mais precisavam de uma frase dizendo do que se trata.
+		if (!descricao && !partes.some((parte) => parte.explicacao)) return;
 
 		const acoes = cabecalho.createDiv({ cls: "ve-acordeao-acoes" });
 
 		const botao = acoes.createEl("button", {
 			cls: "ve-campo-info ve-seletor-info",
-			attr: { type: "button", "aria-label": "Quando esta regra vale" },
+			attr: { type: "button", "aria-label": descricao ? "O que esta regra é" : "Quando esta regra vale" },
 		});
 		setIcon(botao, "info");
 
 		botao.addEventListener("click", (evento) => {
 			// Sem isto o clique subiria para o cabeçalho e abriria/fecharia a seção junto.
 			evento.stopPropagation();
-			this.popoverSeletor.abrirSeletor(botao, seletor, partes);
+			this.popoverSeletor.abrirSeletor(botao, seletor, partes, descricao);
 		});
 	}
 
@@ -1048,8 +1058,8 @@ export class VistaVisual extends TextFileView {
 
 		const explicacao: Record<Formato, string> = {
 			css: this.plugin.configuracoes.mostrarElementos
-				? "Este arquivo não tem variáveis CSS (`--nome: valor`) nem regras de estilo. Declare variáveis num bloco `:root` e elas aparecem aqui."
-				: "Este arquivo não tem variáveis CSS (`--nome: valor`). O editor visual mostra os controles a partir delas — declare as suas num bloco `:root`, ou ligue “Mostrar os elementos” nas configurações para editar as regras.",
+				? "Este arquivo não tem variáveis CSS (`--nome: valor`) nem regras de estilo. Declare variáveis num bloco `:root` (ou `@theme`, no Tailwind) e elas aparecem aqui."
+				: "Este arquivo não tem variáveis CSS (`--nome: valor`). O editor visual mostra os controles a partir delas — declare as suas num bloco `:root` (ou `@theme`, no Tailwind), ou ligue “Mostrar os elementos” nas configurações para editar as regras.",
 			json: "Este arquivo não tem valores que o editor consiga mostrar como controles.",
 			texto: "Este arquivo não tem linhas no formato `chave = valor`.",
 		};
@@ -1079,6 +1089,7 @@ export class VistaVisual extends TextFileView {
 			const documento = ler(this.texto, this.formato);
 			this.campos = documento.campos;
 			this.naoEditaveis = documento.naoEditaveis;
+		this.descricoesDeRegra = documento.descricoesDeRegra ?? new Map();
 
 			this.salvarAdiado();
 			this.desenhar();
@@ -1123,6 +1134,7 @@ export class VistaVisual extends TextFileView {
 		const documento = ler(this.texto, this.formato);
 		this.campos = documento.campos;
 		this.naoEditaveis = documento.naoEditaveis;
+		this.descricoesDeRegra = documento.descricoesDeRegra ?? new Map();
 
 		this.popover.fechar();
 		this.salvarAdiado();
@@ -1180,7 +1192,7 @@ export class VistaVisual extends TextFileView {
 				return;
 			}
 			this.adotarTexto(resultado.texto, `criar ${nome}`);
-			new Notice(`${nome} criada no :root.`);
+			new Notice(`${nome} criada em ${resultado.casa ?? ":root"}.`);
 		}).open();
 	}
 
@@ -1197,6 +1209,7 @@ export class VistaVisual extends TextFileView {
 		const documento = ler(this.texto, this.formato);
 		this.campos = documento.campos;
 		this.naoEditaveis = documento.naoEditaveis;
+		this.descricoesDeRegra = documento.descricoesDeRegra ?? new Map();
 
 		this.salvarAdiado();
 		this.desenhar();
@@ -1226,6 +1239,7 @@ export class VistaVisual extends TextFileView {
 		const documento = ler(this.texto, this.formato);
 		this.campos = documento.campos;
 		this.naoEditaveis = documento.naoEditaveis;
+		this.descricoesDeRegra = documento.descricoesDeRegra ?? new Map();
 
 		this.salvarAdiado();
 

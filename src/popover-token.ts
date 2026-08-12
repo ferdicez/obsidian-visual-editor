@@ -118,7 +118,12 @@ export class PopoverToken {
 	 * posicionamento, fechar ao clicar fora, fechar com Esc. Duplicar isso significaria dois lugares
 	 * para corrigir quando o posicionamento precisar de ajuste.
 	 */
-	abrirSeletor(ancora: HTMLElement, seletor: string, partes: ParteExplicada[]): void {
+	abrirSeletor(
+		ancora: HTMLElement,
+		seletor: string,
+		partes: ParteExplicada[],
+		descricao?: string
+	): void {
 		this.fechar();
 
 		const doc = ancora.doc;
@@ -126,7 +131,12 @@ export class PopoverToken {
 		this.el = el;
 
 		const cabecalho = el.createDiv({ cls: "ve-pop-cabecalho" });
-		cabecalho.createSpan({ cls: "ve-pop-titulo", text: "Quando esta regra vale" });
+		// Com descrição o título muda: "quando vale" prometeria condição, e o que vem logo abaixo é o
+		// que a regra É. Sem ela, o popover continua sendo só sobre condição, como antes.
+		cabecalho.createSpan({
+			cls: "ve-pop-titulo",
+			text: descricao ? "Esta regra" : "Quando esta regra vale",
+		});
 
 		const fechar = cabecalho.createEl("button", {
 			cls: "ve-pop-fechar",
@@ -134,6 +144,12 @@ export class PopoverToken {
 		});
 		setIcon(fechar, "x");
 		fechar.addEventListener("click", () => this.fechar());
+
+		// A descrição escrita por ela vem ANTES das condições: é o "do que se trata", e a condição é
+		// detalhe de quando aquilo se aplica.
+		if (descricao) {
+			el.createDiv({ cls: "ve-pop-descricao-regra", text: descricao });
+		}
 
 		const lista = el.createDiv({ cls: "ve-pop-condicoes" });
 

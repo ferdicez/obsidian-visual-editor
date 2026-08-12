@@ -110,6 +110,18 @@ export interface Documento {
 	campos: Campo[];
 	/** Trechos que o leitor NÃO entendeu, para o aviso de "isto aqui não é editável na interface". */
 	naoEditaveis: number;
+	/**
+	 * O comentário escrito acima de uma REGRA, por seletor — a descrição que aparece no (i) do
+	 * cabeçalho do grupo.
+	 *
+	 * Fica no documento, e não no `Campo`, porque descreve a regra inteira e não uma propriedade
+	 * dela: `.texto-rico blockquote` é um grupo de campos, não um campo. A chave é o seletor
+	 * completo, no mesmo formato do `grupo` dos campos (`@media … › .card`), para o cabeçalho achar
+	 * pela chave que já tem em mãos.
+	 *
+	 * Só CSS: JSON e texto não têm regra a descrever.
+	 */
+	descricoesDeRegra?: Map<string, string>;
 }
 
 /**

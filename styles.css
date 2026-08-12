@@ -1395,10 +1395,33 @@
 	color: var(--text-normal);
 }
 
+/*
+	A descrição escrita à mão acima da regra, no arquivo.
+
+	Texto normal, e não monoespaçado: é a frase dela explicando do que a regra se trata, não um
+	trecho de código. Fica acima das condições, separada por uma linha quando as duas aparecem.
+*/
+.visual-editor-popover .ve-pop-descricao-regra {
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	line-height: 1.45;
+}
+
+.visual-editor-popover .ve-pop-descricao-regra:not(:last-child) {
+	margin-bottom: 0.7em;
+	padding-bottom: 0.7em;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
 .visual-editor-popover .ve-pop-condicoes {
 	display: flex;
 	flex-direction: column;
 	gap: 0.6em;
+}
+
+/* Sem condição nenhuma, a lista vazia deixaria um vão entre a descrição e o seletor cru. */
+.visual-editor-popover .ve-pop-condicoes:empty {
+	display: none;
 }
 
 /*

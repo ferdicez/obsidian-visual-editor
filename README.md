@@ -81,20 +81,36 @@ Na aba **Elementos**, cada linha é uma propriedade de uma regra.
 - Quando o valor é **literal** (`background: white`), o botão de **corrente** oferece trocar por uma
   variável existente ou **extrair para uma variável nova**.
 
-O **(i)** no cabeçalho de cada grupo explica **quando aquela regra vale**: `@media (width >= 48rem)`
-vira "a tela tem 768px ou mais", `:focus-visible` vira "o elemento está em foco pelo teclado".
+O **(i)** no cabeçalho de cada grupo explica **o que aquela regra é** e **quando ela vale**. O
+"quando" é deduzido do seletor: `@media (width >= 48rem)` vira "a tela tem 768px ou mais",
+`:focus-visible` vira "o elemento está em foco pelo teclado".
+
+O "o que é" vem de você: o **comentário escrito na linha logo acima da regra** vira a descrição, sem
+linha em branco entre os dois.
+
+```css
+/* A citação: um traço na lateral e o texto um tom mais claro. */
+.artigo blockquote { … }
+```
+
+Um seletor diz o que a regra *alcança*, nunca o que ela *é* — e a maioria não tem condição nenhuma
+para traduzir. A frase é o que faz `.artigo blockquote` se explicar numa lista de dezenas de regras.
 
 ### Extrair para variável
 
 Vendo `padding: 24px` numa regra, o botão de corrente → **"Extrair para uma variável nova…"** cria
-`--card-padding: 24px` no `:root` e troca o uso por `var(--card-padding)`.
+`--card-padding: 24px` no bloco de tokens e troca o uso por `var(--card-padding)`.
+
+O bloco de tokens é o **`:root`** de topo — ou o **`@theme`**, em projetos Tailwind v4, onde é ali que
+os tokens moram e é o que gera as classes utilitárias. O aviso diz onde a variável foi criada.
 
 ⚠️ **Esta é a única operação do plugin que acrescenta linha ao arquivo.** Ela recusa quando:
 
-- não há um bloco `:root` de topo para receber a declaração (o plugin não escolhe um lugar sozinho);
-- o `:root` está dentro de uma `@media` (o token ficaria indefinido fora daquela largura);
+- não há um bloco `:root` nem `@theme` de topo para receber a declaração (o plugin não escolhe um
+  lugar sozinho);
+- o bloco está dentro de uma `@media` (o token ficaria indefinido fora daquela largura);
 - o nome já existe;
-- a regra vem antes do `:root` no arquivo.
+- a regra vem antes do bloco de tokens no arquivo.
 
 ### Organizar a lista
 

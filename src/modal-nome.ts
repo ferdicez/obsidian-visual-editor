@@ -31,7 +31,7 @@ export class ModalNomeVariavel extends Modal {
 		contentEl.createEl("h3", { text: "Extrair para variável" });
 		contentEl.createDiv({
 			cls: "ve-modal-nota",
-			text: "A variável é criada no :root e a propriedade passa a usá-la.",
+			text: "A variável é criada no bloco de tokens do arquivo (:root ou @theme) e a propriedade passa a usá-la.",
 		});
 
 		let entrada: HTMLInputElement;

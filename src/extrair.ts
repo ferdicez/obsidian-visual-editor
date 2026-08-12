@@ -8,9 +8,10 @@
  *
  * As três regras que sustentam a segurança:
  *
- * 1. **Nada é inventado.** Sem um `:root` no arquivo, a extração é RECUSADA — o plugin não escolhe
- *    um lugar para criar a declaração. Errar isso produziria CSS válido no lugar errado, que é
- *    exatamente o tipo de estrago silencioso que ela não teria como perceber.
+ * 1. **Nada é inventado.** Sem uma casa de token no arquivo (`:root` ou `@theme`), a extração é
+ *    RECUSADA — o plugin não escolhe um lugar para criar a declaração. Errar isso produziria CSS
+ *    válido no lugar errado, que é exatamente o tipo de estrago silencioso que ela não teria como
+ *    perceber.
  * 2. **Nome novo nunca colide.** Um nome já usado seria redeclaração — o valor antigo passaria a
  *    valer para quem já usava a variável.
  * 3. **A inserção é feita depois da troca.** Inserir primeiro deslocaria o `inicio`/`fim` da
@@ -25,6 +26,12 @@ export interface ResultadoExtracao {
 	texto: string;
 	/** Por que não deu, para a interface avisar em vez de falhar em silêncio. */
 	erro?: string;
+	/**
+	 * O bloco que recebeu a declaração (`:root`, `@theme`…), para o aviso dizer onde ela foi parar.
+	 * Quem extrai num arquivo Tailwind precisa saber que caiu no `@theme` — é o que explica a
+	 * classe utilitária aparecer junto.
+	 */
+	casa?: string;
 }
 
 /** Um nome é um identificador CSS válido de custom property? */
@@ -33,14 +40,15 @@ export function nomeValido(nome: string): boolean {
 }
 
 /**
- * Onde a declaração nova entra: dentro do PRIMEIRO `:root` de topo do arquivo.
+ * Onde a declaração nova entra: dentro da PRIMEIRA casa de token de topo do arquivo — o `:root`,
+ * ou o `@theme` do Tailwind v4 (ver `ehSeletorRoot`).
  *
  * "De topo" importa: um `:root` dentro de `@media` vale só naquela largura, e criar o token lá o
  * deixaria indefinido no resto do site — a página quebraria fora daquela media query.
  *
  * Devolve a posição logo depois do `{`, e a indentação usada pelas declarações existentes.
  */
-function acharRoot(texto: string): { posicao: number; indentacao: string } | null {
+function acharRoot(texto: string): { posicao: number; indentacao: string; casa: string } | null {
 	let profundidade = 0;
 	let i = 0;
 	let inicioTrecho = 0;
@@ -70,7 +78,7 @@ function acharRoot(texto: string): { posicao: number; indentacao: string } | nul
 			const seletor = texto.slice(inicioTrecho, i).trim().replace(/\s+/g, " ");
 			// Só interessa o `:root` que está na raiz do arquivo (profundidade 0).
 			if (profundidade === 0 && ehSeletorRoot(seletor)) {
-				return { posicao: i + 1, indentacao: indentacaoDe(texto, i + 1) };
+				return { posicao: i + 1, indentacao: indentacaoDe(texto, i + 1), casa: seletor };
 			}
 			profundidade++;
 			i++;
@@ -91,9 +99,25 @@ function acharRoot(texto: string): { posicao: number; indentacao: string } | nul
 	return null;
 }
 
-/** `:root`, `html`, ou os dois juntos — a casa dos tokens. */
+/**
+ * `:root`, `html`, os dois juntos — ou `@theme`. A casa dos tokens.
+ *
+ * **`@theme` entrou por causa do Tailwind v4**, onde ele é a casa dos tokens no lugar do `:root`:
+ * declarar `--color-roxo` ali é o que gera as classes `bg-roxo`/`text-roxo`, e um token criado num
+ * `:root` à parte existiria como variável mas não viraria classe nenhuma. Recusar a extração num
+ * arquivo desses obrigaria a abrir o editor de código justamente onde o plugin deveria bastar.
+ *
+ * A garantia de `acharRoot` continua valendo igual: só vale o bloco de topo (`profundidade === 0`),
+ * então um `@theme` aninhado dentro de `@media` não é escolhido — é a mesma proteção que já existia
+ * para o `:root`, pelo mesmo motivo.
+ */
 function ehSeletorRoot(seletor: string): boolean {
-	const alvos = seletor.split(",").map((s) => s.trim().toLowerCase());
+	const limpo = seletor.trim().toLowerCase();
+
+	// `@theme` pode vir com nome de camada (`@theme inline`, `@theme static`) — todas declaram token.
+	if (limpo === "@theme" || limpo.startsWith("@theme ")) return true;
+
+	const alvos = limpo.split(",").map((s) => s.trim());
 	return alvos.length > 0 && alvos.every((alvo) => alvo === ":root" || alvo === "html");
 }
 
@@ -134,17 +158,17 @@ export function extrairVariavel(
 		return {
 			ok: false,
 			texto,
-			erro: "Este arquivo não tem um bloco :root para receber a variável. Crie um e tente de novo.",
+			erro: "Este arquivo não tem um bloco :root nem @theme para receber a variável. Crie um e tente de novo.",
 		};
 	}
 
 	// A propriedade tem de vir DEPOIS do ponto de inserção para a ordem de escrita abaixo valer.
-	// Um `:root` declarado no fim do arquivo (raro, mas possível) cairia neste caso.
+	// Uma casa de token declarada no fim do arquivo (raro, mas possível) cairia neste caso.
 	if (campo.inicio < root.posicao) {
 		return {
 			ok: false,
 			texto,
-			erro: "A regra está antes do bloco :root — extrair aqui deixaria a variável indefinida no uso.",
+			erro: "A regra está antes do bloco de tokens — extrair aqui deixaria a variável indefinida no uso.",
 		};
 	}
 
@@ -154,7 +178,7 @@ export function extrairVariavel(
 	let novo = texto.slice(0, campo.inicio) + `var(${nome})` + texto.slice(campo.fim);
 	novo = novo.slice(0, root.posicao) + `\n${root.indentacao}${nome}: ${valor};` + novo.slice(root.posicao);
 
-	return { ok: true, texto: novo };
+	return { ok: true, texto: novo, casa: root.casa };
 }
 
 /**

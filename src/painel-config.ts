@@ -178,7 +178,7 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 
 		this.containerEl.createDiv({
 			cls: "visual-editor-config-nota",
-			text: "Extrair para variável é a única ação do plugin que acrescenta linha ao arquivo: ela cria a declaração no :root e troca o valor da regra por var(--nome). Todo o resto só reescreve o valor que você editou.",
+			text: "Extrair para variável é a única ação do plugin que acrescenta linha ao arquivo: ela cria a declaração no bloco de tokens (:root, ou @theme no Tailwind) e troca o valor da regra por var(--nome). Todo o resto só reescreve o valor que você editou.",
 		});
 	}
 

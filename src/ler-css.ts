@@ -46,6 +46,8 @@ export function lerCss(texto: string): Documento {
 	 * arquivo, em vez de pelo seletor CSS, que joga tudo num `:root` só.
 	 */
 	let secaoAtual = "";
+	/** Seletor completo → o comentário escrito acima da regra. Ver `Documento.descricoesDeRegra`. */
+	const descricoesDeRegra = new Map<string, string>();
 
 	let i = 0;
 	const n = texto.length;
@@ -88,9 +90,31 @@ export function lerCss(texto: string): Documento {
 		if (c === "{") {
 			const seletor = texto.slice(inicioTrecho, i).trim().replace(/\s+/g, " ");
 			pilha.push(seletor);
+
+			// O comentário logo acima da regra descreve A REGRA, e vira o texto do (i) no cabeçalho
+			// do grupo. Um seletor diz o que a regra ALCANÇA (`.texto-rico blockquote`), nunca o que
+			// ela é para ela — e é isso que a explicação automática de `explicar-seletor.ts` não tem
+			// como suprir, porque a intenção não está escrita no seletor.
+			//
+			// "Colado" com o mesmo critério dos campos: entre o fim do comentário e o começo do
+			// seletor só pode haver espaço em branco. Sem isso, o comentário de uma regra anterior
+			// descreveria a próxima que aparecesse.
+			if (comentarioPendente && fimComentario !== -1) {
+				const entre = texto.slice(fimComentario, inicioTrecho);
+				if (entre.trim() === "") {
+					const caminho = pilha.filter(Boolean).join(" › ");
+					// O primeiro comentário vence: numa regra aninhada, o de dentro é o mais específico
+					// e já terá sido gravado com o caminho completo.
+					if (caminho && !descricoesDeRegra.has(caminho)) {
+						descricoesDeRegra.set(caminho, comentarioPendente);
+					}
+				}
+			}
+
 			i++;
 			inicioTrecho = i;
 			comentarioPendente = "";
+			fimComentario = -1;
 			continue;
 		}
 
@@ -221,7 +245,7 @@ export function lerCss(texto: string): Documento {
 		i++;
 	}
 
-	return { campos, naoEditaveis };
+	return { campos, naoEditaveis, descricoesDeRegra };
 }
 
 /**
