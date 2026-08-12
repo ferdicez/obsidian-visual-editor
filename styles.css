@@ -131,6 +131,22 @@
 	color: var(--text-normal);
 }
 
+/*
+	Desfazer/refazer sem nada para fazer.
+
+	Apagado em vez de escondido: um botão que some e volta faz os vizinhos dançarem na barra, e ela
+	perderia a referência de onde clicar. Continua clicável — o aviso "nada para desfazer" explica
+	melhor do que um clique que não faz nada.
+*/
+.visual-editor-vista .ve-botao-icone.is-inativo {
+	opacity: 0.35;
+}
+
+.visual-editor-vista .ve-botao-icone.is-inativo:hover {
+	background: transparent;
+	color: var(--text-muted);
+}
+
 /* --- Corpo rolável -------------------------------------------------------------------------- */
 
 /*
@@ -393,12 +409,34 @@
 }
 
 /* O input de cor é só o mecanismo: quem se vê é a amostra, que o dispara. */
+/*
+	O input de cor é só o MECANISMO: quem se vê é a amostra, que o dispara por `.click()`.
+
+	Ele NÃO pode ter `pointer-events: none` nem `display: none`: nesses estados o navegador trata o
+	elemento como não interativo e ignora o clique programático, então a amostra parecia morta —
+	exatamente o que ela relatou nas camadas de sombra. Some por tamanho e opacidade, que não afetam
+	a interatividade.
+
+	`position: absolute` com `left: -9999px` tirava o input do fluxo mas o mantinha "clicável"; aqui
+	ele fica no fluxo com tamanho zero, o que também ancora o seletor do sistema perto da amostra em
+	vez de num canto da tela.
+*/
 .visual-editor-vista .ve-seletor-cor {
-	position: absolute;
 	width: 0;
 	height: 0;
+	min-width: 0;
+	padding: 0;
+	margin: 0;
+	border: none;
 	opacity: 0;
-	pointer-events: none;
+	overflow: hidden;
+	flex: 0 0 auto;
+	/*
+		`position: absolute` tira o input do fluxo, então o `gap` do flex em volta não abre um buraco
+		entre a amostra e o campo de texto. Diferente de `display: none` e de `pointer-events: none`,
+		posicionar não torna o elemento inerte — o `.click()` da amostra continua abrindo o seletor.
+	*/
+	position: absolute;
 }
 
 /* Medida e número */

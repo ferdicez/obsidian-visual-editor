@@ -11,6 +11,7 @@ import {
 } from "./documento";
 import { extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
 import { ModalNomeVariavel, sugerirNome } from "./modal-nome";
+import { Historico } from "./historico";
 import { PopoverToken } from "./popover-token";
 import type VisualEditorPlugin from "./main";
 import { Campo, humanizar } from "./tipos";
@@ -61,6 +62,15 @@ export class VistaVisual extends TextFileView {
 	/** A janelinha de edição de token, aberta a partir de uma ficha na aba Elementos. */
 	private popover = new PopoverToken();
 
+	/**
+	 * Desfazer/refazer próprio.
+	 *
+	 * O Ctrl+Z do Obsidian é do editor de texto, e esta view não é um — não havia nada para ele
+	 * desfazer. Ver `historico.ts`.
+	 */
+	private historico = new Historico();
+
+
 	private corpo!: HTMLElement;
 	private barra!: HTMLElement;
 	private filtro = "";
@@ -108,6 +118,17 @@ export class VistaVisual extends TextFileView {
 		this.campos = documento.campos;
 		this.naoEditaveis = documento.naoEditaveis;
 
+		// O histórico é reiniciado só quando o texto vem de FORA — abrir o arquivo, ou ele mudar no
+		// disco pelo editor de código dela.
+		//
+		// A distinção é feita comparando com o passo atual, e não com uma marca temporal: o
+		// salvamento é adiado em 400ms, então qualquer "estou aplicando agora" que se desligasse por
+		// tempo teria de adivinhar quando o `setViewData` de volta chega. Comparar o conteúdo é exato
+		// — se o texto que chegou é o que já temos, não é mudança externa, seja qual for o atraso.
+		if (dados !== this.historico.atual) {
+			this.historico.iniciar(dados);
+		}
+
 		this.desenhar();
 	}
 
@@ -119,6 +140,32 @@ export class VistaVisual extends TextFileView {
 
 	async onOpen(): Promise<void> {
 		this.contentEl.addClass("visual-editor-vista");
+
+		/*
+			Ctrl+Z / Ctrl+Shift+Z dentro da view.
+
+			O atalho do Obsidian pertence ao editor de texto (CodeMirror), e esta view não é um — por
+			isso ele "não funcionava": não havia histórico para desfazer, nem quem escutasse a tecla.
+
+			O ouvinte é do `contentEl`, não do documento: fora da aba, o Ctrl+Z tem de continuar
+			desfazendo o que quer que ela esteja fazendo. E o modo código é exceção — lá a textarea tem
+			o desfazer nativo do navegador, que é o certo para digitação.
+		*/
+		this.contentEl.addEventListener("keydown", (evento) => {
+			if (!(evento.ctrlKey || evento.metaKey) || evento.key.toLowerCase() !== "z") return;
+			if (this.modoCodigo) return;
+
+			// Num campo de texto, o Ctrl+Z do navegador desfaz a digitação — mais útil ali do que
+			// reverter o arquivo inteiro.
+			const alvo = evento.target;
+			if (alvo instanceof HTMLInputElement || alvo instanceof HTMLTextAreaElement) {
+				if (alvo.type !== "range" && alvo.type !== "color") return;
+			}
+
+			evento.preventDefault();
+			if (evento.shiftKey) this.refazer();
+			else this.desfazer();
+		});
 	}
 
 	async onClose(): Promise<void> {
@@ -133,9 +180,20 @@ export class VistaVisual extends TextFileView {
 	// -------------------------------------------------------------------------------------------
 
 	private desenhar(): void {
-		// A posição de rolagem é restaurada porque `desenhar()` roda a cada gravação: sem isso, mexer
-		// num controle lá embaixo jogaria a tela de volta ao topo a cada ajuste.
-		const rolagem = this.corpo?.scrollTop ?? 0;
+		/*
+			A rolagem é guardada e devolvida porque `desenhar()` roda a cada gravação — sem isso, mexer
+			num controle lá embaixo joga a tela de volta ao topo a cada ajuste.
+
+			Dois detalhes que fizeram isso falhar antes, e que ela relatou como "toda vez que eu edito,
+			o arquivo volta pro topo":
+
+			1. **Quem rola nem sempre é o `.ve-corpo`.** No modo emparelhado o corpo tem
+			   `overflow: hidden` e quem rola são as colunas. Guardar só o corpo perdia a posição.
+			2. **Devolver a rolagem no mesmo quadro não funciona.** Os elementos acabaram de ser criados
+			   e o navegador ainda não calculou a altura; atribuir `scrollTop = 300` num container que
+			   ainda mede 0 de altura rolável resulta em 0. Por isso a devolução espera o próximo quadro.
+		*/
+		const rolagens = this.lerRolagens();
 
 		this.contentEl.empty();
 		this.desenharBarra();
@@ -150,7 +208,38 @@ export class VistaVisual extends TextFileView {
 			this.desenharCampos();
 		}
 
-		this.corpo.scrollTop = rolagem;
+		this.devolverRolagens(rolagens);
+	}
+
+	/** A rolagem do corpo e a de cada coluna do modo emparelhado. */
+	private lerRolagens(): { corpo: number; colunas: number[] } {
+		const colunas = this.corpo
+			? Array.from(this.corpo.querySelectorAll(".ve-coluna-corpo")).map((el) =>
+					el instanceof HTMLElement ? el.scrollTop : 0
+				)
+			: [];
+
+		return { corpo: this.corpo?.scrollTop ?? 0, colunas };
+	}
+
+	private devolverRolagens(rolagens: { corpo: number; colunas: number[] }): void {
+		const aplicar = () => {
+			if (!this.corpo) return;
+
+			this.corpo.scrollTop = rolagens.corpo;
+
+			const colunas = this.corpo.querySelectorAll(".ve-coluna-corpo");
+			colunas.forEach((el, i) => {
+				if (el instanceof HTMLElement && rolagens.colunas[i] !== undefined) {
+					el.scrollTop = rolagens.colunas[i];
+				}
+			});
+		};
+
+		// Uma vez agora (cobre o caso em que o layout já está válido, evitando um piscar) e outra no
+		// próximo quadro, quando as alturas estão calculadas e a atribuição pega de verdade.
+		aplicar();
+		requestAnimationFrame(aplicar);
 	}
 
 	/** Os tokens: as declarações de variável. É o que o plugin sempre editou. */
@@ -230,6 +319,28 @@ export class VistaVisual extends TextFileView {
 		const contagem = direita.createSpan({ cls: "ve-contagem" });
 		const quantos = this.camposDaAba.length;
 		contagem.setText(quantos === 1 ? "1 controle" : `${quantos} controles`);
+
+		// Desfazer/refazer. O Ctrl+Z do Obsidian não alcança esta view — ele é do editor de texto —,
+		// então os botões são o caminho principal, e o atalho é reimplementado abaixo.
+		const desfazer = botaoIcone(
+			direita,
+			"undo-2",
+			this.historico.podeDesfazer
+				? `Desfazer: ${this.historico.rotuloDesfazer} (Ctrl+Z)`
+				: "Nada para desfazer",
+			() => this.desfazer()
+		);
+		desfazer.toggleClass("is-inativo", !this.historico.podeDesfazer);
+
+		const refazer = botaoIcone(
+			direita,
+			"redo-2",
+			this.historico.podeRefazer
+				? `Refazer: ${this.historico.rotuloRefazer} (Ctrl+Shift+Z)`
+				: "Nada para refazer",
+			() => this.refazer()
+		);
+		refazer.toggleClass("is-inativo", !this.historico.podeRefazer);
 
 		// Na aba de elementos não há escolha de agrupamento — é sempre por regra.
 		if (!this.modoCodigo && (this.aba !== "elementos" || this.emparelhadoAtivo)) {
@@ -788,6 +899,7 @@ export class VistaVisual extends TextFileView {
 		area.addEventListener("blur", () => {
 			if (area.value === this.texto) return;
 			this.texto = area.value;
+			this.historico.registrar(this.texto, "edição no modo código");
 
 			const documento = ler(this.texto, this.formato);
 			this.campos = documento.campos;
@@ -802,6 +914,46 @@ export class VistaVisual extends TextFileView {
 	// Edição
 	// -------------------------------------------------------------------------------------------
 
+	/** Desfaz o último passo. Público para o comando da paleta alcançá-lo. */
+	desfazer(): void {
+		const passo = this.historico.desfazer();
+		if (!passo) {
+			new Notice("Nada para desfazer.");
+			return;
+		}
+		this.viajarPara(passo.texto);
+		new Notice(`Desfeito: ${passo.rotulo === "Estado inicial" ? "voltou ao início" : passo.rotulo}`);
+	}
+
+	refazer(): void {
+		const passo = this.historico.refazer();
+		if (!passo) {
+			new Notice("Nada para refazer.");
+			return;
+		}
+		this.viajarPara(passo.texto);
+		new Notice(`Refeito: ${passo.rotulo}`);
+	}
+
+	/**
+	 * Adota um texto do histórico, sem registrá-lo como passo novo.
+	 *
+	 * O `Historico` já moveu sua posição; aqui só refletimos o resultado na tela e no arquivo. Como
+	 * `setViewData` compara o conteúdo com `historico.atual`, o retorno do salvamento não reinicia
+	 * nada.
+	 */
+	private viajarPara(texto: string): void {
+		this.texto = texto;
+
+		const documento = ler(this.texto, this.formato);
+		this.campos = documento.campos;
+		this.naoEditaveis = documento.naoEditaveis;
+
+		this.popover.fechar();
+		this.salvarAdiado();
+		this.desenhar();
+	}
+
 	/** Liga a propriedade a uma variável existente. Não acrescenta linha: é troca de valor. */
 	private ligar(campo: Campo, nome: string): void {
 		const resultado = ligarVariavel(this.texto, campo, nome);
@@ -809,7 +961,7 @@ export class VistaVisual extends TextFileView {
 			new Notice(resultado.erro ?? "Não foi possível ligar a variável.");
 			return;
 		}
-		this.adotarTexto(resultado.texto);
+		this.adotarTexto(resultado.texto, `ligar ${nome}`);
 	}
 
 	/**
@@ -852,7 +1004,7 @@ export class VistaVisual extends TextFileView {
 				new Notice(resultado.erro ?? "Não foi possível extrair a variável.");
 				return;
 			}
-			this.adotarTexto(resultado.texto);
+			this.adotarTexto(resultado.texto, `criar ${nome}`);
 			new Notice(`${nome} criada no :root.`);
 		}).open();
 	}
@@ -863,8 +1015,9 @@ export class VistaVisual extends TextFileView {
 	 * Diferente de `aplicar`: aqui os deslocamentos de todos os campos mudaram (uma linha foi
 	 * inserida), então relemos tudo antes de redesenhar.
 	 */
-	private adotarTexto(texto: string): void {
+	private adotarTexto(texto: string, rotulo = "Mudança"): void {
 		this.texto = texto;
+		this.historico.registrar(texto, rotulo);
 
 		const documento = ler(this.texto, this.formato);
 		this.campos = documento.campos;
@@ -891,6 +1044,9 @@ export class VistaVisual extends TextFileView {
 			new Notice(`Não foi possível aplicar a mudança: ${erro instanceof Error ? erro.message : erro}`);
 			return;
 		}
+
+		// O rótulo usa o nome que ela vê na tela, para o botão dizer "Desfazer: Cor primária".
+		this.historico.registrar(this.texto, campo.papel === "propriedade" ? `${campo.seletor} · ${campo.propriedade}` : campo.rotulo);
 
 		const documento = ler(this.texto, this.formato);
 		this.campos = documento.campos;

@@ -56,6 +56,32 @@ export default class VisualEditorPlugin extends Plugin {
 			})
 		);
 
+		// Desfazer e refazer também como comandos: a paleta os alcança, e ela pode remapear as teclas
+		// se preferir outro atalho.
+		this.addCommand({
+			id: "desfazer-editor-visual",
+			name: "Desfazer no editor visual",
+			checkCallback: (apenasVerificar) => {
+				const view = this.app.workspace.getActiveViewOfType(VistaVisual);
+				if (!view) return false;
+				if (apenasVerificar) return true;
+				view.desfazer();
+				return true;
+			},
+		});
+
+		this.addCommand({
+			id: "refazer-editor-visual",
+			name: "Refazer no editor visual",
+			checkCallback: (apenasVerificar) => {
+				const view = this.app.workspace.getActiveViewOfType(VistaVisual);
+				if (!view) return false;
+				if (apenasVerificar) return true;
+				view.refazer();
+				return true;
+			},
+		});
+
 		this.addCommand({
 			id: "alternar-editor-visual",
 			name: "Alternar entre editor visual e código",
