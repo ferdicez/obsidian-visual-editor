@@ -1,3 +1,4 @@
+import { ehPropriedadeDeLados, lerLados } from "./lados";
 import { TipoCampo } from "./tipos";
 
 /**
@@ -9,8 +10,10 @@ import { TipoCampo } from "./tipos";
  * lado do texto livre nunca estraga o arquivo; errar para o lado do slider, sim.
  */
 
+// `inherit`, `initial` e `unset` NÃO entram aqui: valem para qualquer propriedade, e tratá-los como
+// cor fazia `padding: inherit` abrir um seletor de cor. São palavras-chave globais, não cores.
 const CORES_NOMEADAS = new Set([
-	"transparent", "currentcolor", "inherit",
+	"transparent", "currentcolor",
 	"black", "white", "red", "green", "blue", "yellow", "orange", "purple", "pink", "brown",
 	"gray", "grey", "silver", "gold", "cyan", "magenta", "lime", "navy", "teal", "olive",
 	"maroon", "aqua", "fuchsia", "indigo", "violet", "coral", "salmon", "khaki", "beige",
@@ -171,15 +174,27 @@ export function deduzir(chave: string, valor: string): Deducao {
 
 	if (!v) return { tipo: "texto" };
 
-	// Um valor que referencia outra variável não é editável como cor/medida — é um ponteiro. Editar
+	// Um valor que é APENAS uma referência não é editável como cor/medida — é um ponteiro. Editar
 	// como texto preserva a referência; oferecer um seletor de cor a transformaria num hex fixo e
 	// quebraria silenciosamente o encadeamento que ela montou.
-	if (/^var\s*\(/i.test(v)) return { tipo: "texto" };
+	//
+	// A checagem é do valor inteiro, não do começo: `padding: var(--sm) 16px` tem uma referência e um
+	// número, e ancorar no começo fazia esse virar texto enquanto `padding: 16px var(--sm)` virava
+	// controle — a mesma propriedade se comportando diferente conforme a ordem dos lados.
+	if (/^var\s*\([^)]*\)$/i.test(v)) return { tipo: "texto" };
+
+	// Duas ou mais referências numa propriedade de lados (`padding: var(--lg) var(--md)`) é a forma
+	// mais comum num CSS com design tokens: vai para o controle de lados, onde cada referência
+	// aparece como texto e volta intacta.
+	if (ehPropriedadeDeLados(chave) && lerLados(v)) return { tipo: "lados" };
 
 	// `calc()` idem: o resultado depende de contexto que o plugin não tem.
 	if (/^calc\s*\(/i.test(v)) return { tipo: "texto" };
 
 	if (ehCor(v)) return { tipo: "cor" };
+
+	// Uma referência no meio de um valor composto que NÃO é lados continua texto.
+	if (/\bvar\s*\(/i.test(v) && !ehPropriedadeDeLados(chave)) return { tipo: "texto" };
 
 	const medida = partirMedida(v);
 	if (medida) {

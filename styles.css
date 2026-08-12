@@ -432,6 +432,63 @@
 	min-width: 1.8em;
 }
 
+/* --- Lados (padding, margin, gap) ------------------------------------------------------------ */
+
+/*
+	Um campo por lado, com a inicial acima (C/D/B/E) e o cadeado no fim.
+
+	`padding: 8px 16px` caía em campo de texto — a forma mais comum de padding e margin —, então na
+	prática não dava para ajustar espaçamento pelos controles.
+*/
+.visual-editor-vista .ve-controle-lados {
+	gap: 0.4em;
+}
+
+.visual-editor-vista .ve-lados-grade {
+	display: flex;
+	align-items: center;
+	gap: 0.3em;
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-lados-bloco {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.1em;
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-lados-sigla {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	line-height: 1;
+}
+
+.visual-editor-vista .ve-lados-numero {
+	width: 3.8em;
+	min-width: 0;
+	text-align: center;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	padding: 0.2em 0.3em;
+}
+
+/* Um lado que não é medida (`auto`, `var(--x)`) precisa caber texto, não só número. */
+.visual-editor-vista .ve-lados-numero.is-texto {
+	width: 5em;
+}
+
+.visual-editor-vista .ve-lados-cadeado {
+	flex: 0 0 auto;
+	align-self: flex-end;
+	margin-bottom: 0.1em;
+}
+
+.visual-editor-vista .ve-lados-cadeado.is-ativo {
+	color: var(--interactive-accent);
+}
+
 /* Fonte */
 
 .visual-editor-vista .ve-previa-fonte {

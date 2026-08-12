@@ -15,6 +15,7 @@ export type TipoCampo =
 	| "booleano"
 	| "fonte"
 	| "sombra"
+	| "lados"
 	| "opcoes"
 	| "texto"
 	| "textoLongo";

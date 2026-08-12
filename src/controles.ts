@@ -9,6 +9,15 @@ import {
 	separarCamadas,
 	sombraParaTexto,
 } from "./sombra";
+import {
+	NOMES_LADOS,
+	ValorLados,
+	ehPropriedadeDeLados,
+	escreverLados,
+	ladoDeMedida,
+	lerLados,
+	trocarLado,
+} from "./lados";
 import { Campo } from "./tipos";
 
 /**
@@ -45,6 +54,9 @@ export function desenharControle(pai: HTMLElement, campo: Campo, aoMudar: AoMuda
 			break;
 		case "sombra":
 			desenharSombra(pai, campo, aoMudar);
+			break;
+		case "lados":
+			desenharLados(pai, campo, aoMudar);
 			break;
 		case "textoLongo":
 			desenharTextoLongo(pai, campo, aoMudar);
@@ -661,6 +673,116 @@ function medidaDaCamada(
 			entrada.blur();
 		}
 	});
+}
+
+/**
+ * Lados: um campo por lado (cima, direita, baixo, esquerda), com espelho.
+ *
+ * `padding: 8px 16px` caía em campo de texto — e é a forma mais comum de padding e margin, então na
+ * prática não dava para ajustar espaçamento pelos controles. O campo de texto continua embaixo.
+ *
+ * **O espelho é o padrão.** Em `8px 16px`, direita e esquerda são o mesmo valor escrito: mexer numa
+ * e não na outra transformaria a linha em quatro valores para uma mudança só. Com o espelho ligado,
+ * a forma curta se mantém; o cadeado aberto edita cada lado por conta.
+ */
+function desenharLados(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
+	let valor = lerLados(campo.valor);
+	if (!valor) {
+		desenharTexto(pai, campo, aoMudar);
+		return;
+	}
+
+	const caixa = pai.createDiv({ cls: "ve-controle ve-controle-lados" });
+	let separado = false;
+
+	const campos: HTMLInputElement[] = [];
+
+	const grade = caixa.createDiv({ cls: "ve-lados-grade" });
+
+	NOMES_LADOS.forEach((nome, indice) => {
+		const bloco = grade.createDiv({ cls: "ve-lados-bloco" });
+		bloco.setAttr("title", nome);
+		bloco.createSpan({ cls: "ve-lados-sigla", text: nome.slice(0, 1) });
+
+		const lado = valor!.lados[indice];
+
+		const entrada = bloco.createEl("input", {
+			cls: "ve-entrada ve-lados-numero",
+			attr: {
+				type: lado.medida ? "number" : "text",
+				step: "1",
+				value: lado.medida ? String(lado.medida.numero) : lado.bruto,
+				"aria-label": nome,
+			},
+		});
+		campos.push(entrada);
+
+		// Um lado que não é medida (`auto`, `var(--x)`) fica como texto: transformá-lo em número
+		// exigiria inventar um valor, e `margin: 0 auto` é centralização, não uma distância.
+		if (!lado.medida) entrada.addClass("is-texto");
+
+		const confirmar = () => {
+			const bruto = entrada.value.trim();
+			if (bruto === "") return;
+
+			const atual = valor!.lados[indice];
+			let novoLado;
+
+			if (atual.medida) {
+				const numero = parseFloat(bruto);
+				if (Number.isNaN(numero)) return;
+				const unidade = atual.medida.unidade || unidadeVizinha(valor!) || "px";
+				novoLado = { bruto: ladoDeMedida(numero, unidade), medida: { numero, unidade } };
+			} else {
+				novoLado = { bruto, medida: null };
+			}
+
+			valor = trocarLado(valor!, indice, novoLado, separado);
+			sincronizar();
+			aoMudar(escreverLados(valor));
+		};
+
+		entrada.addEventListener("blur", confirmar);
+		entrada.addEventListener("keydown", (evento) => {
+			if (evento.key === "Enter") {
+				evento.preventDefault();
+				entrada.blur();
+			}
+		});
+	});
+
+	/** Devolve aos campos o que o espelho mudou, sem esperar o redesenho. */
+	const sincronizar = () => {
+		valor!.lados.forEach((lado, i) => {
+			campos[i].value = lado.medida ? String(lado.medida.numero) : lado.bruto;
+		});
+	};
+
+	const cadeado = caixa.createEl("button", {
+		cls: "ve-botao-icone ve-lados-cadeado",
+		attr: { type: "button", "aria-label": "Editar cada lado separadamente" },
+	});
+	setIcon(cadeado, "link");
+	cadeado.setAttr("title", "Os lados opostos andam juntos — clique para editar cada um por conta");
+	cadeado.addEventListener("click", () => {
+		separado = !separado;
+		setIcon(cadeado, separado ? "unlink" : "link");
+		cadeado.toggleClass("is-ativo", separado);
+		cadeado.setAttr(
+			"title",
+			separado
+				? "Cada lado é editado por conta — clique para os opostos andarem juntos"
+				: "Os lados opostos andam juntos — clique para editar cada um por conta"
+		);
+	});
+}
+
+/** A unidade usada pelos outros lados, para um `0` (sem unidade) herdar a certa ao virar número. */
+function unidadeVizinha(valor: ValorLados): string | null {
+	for (const lado of valor.lados) {
+		if (lado.medida?.unidade) return lado.medida.unidade;
+	}
+	return null;
 }
 
 /** Texto de uma linha. */
