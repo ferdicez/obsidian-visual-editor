@@ -11,6 +11,7 @@ import {
 } from "./documento";
 import { extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
 import { ModalNomeVariavel, sugerirNome } from "./modal-nome";
+import { abrirAcordeao, criarAcordeao } from "./acordeao";
 import { Historico } from "./historico";
 import { PopoverToken } from "./popover-token";
 import type VisualEditorPlugin from "./main";
@@ -515,15 +516,46 @@ export class VistaVisual extends TextFileView {
 		);
 	}
 
-	/** Desenha uma lista agrupada em seções dentro de um container. */
+	/**
+	 * Desenha uma lista agrupada em seções dentro de um container.
+	 *
+	 * Cada grupo é um acordeão: um `global.css` de verdade rende 117 tokens, e rolar tudo para achar
+	 * um grupo foi o que ela relatou. Recolher devolve o índice da página — ela vê os nomes das
+	 * seções e abre a que quer.
+	 *
+	 * Quando há UM grupo só, o acordeão não aparece: recolher a única seção esconderia a tela
+	 * inteira atrás de um clique, sem nada a ganhar.
+	 */
 	private desenharLista(onde: HTMLElement, campos: Campo[], modo: ModoAgrupamento): void {
-		for (const [grupo, lista] of agrupar(campos, modo)) {
-			const secao = onde.createDiv({ cls: "ve-secao" });
-			secao.createDiv({ cls: "ve-secao-titulo", text: humanizar(grupo) });
+		const grupos = [...agrupar(campos, modo)];
 
-			for (const campo of lista) {
-				this.desenharCampo(secao, campo);
-			}
+		if (grupos.length === 1) {
+			const secao = onde.createDiv({ cls: "ve-secao" });
+			secao.createDiv({ cls: "ve-secao-titulo", text: humanizar(grupos[0][0]) });
+			for (const campo of grupos[0][1]) this.desenharCampo(secao, campo);
+			return;
+		}
+
+		for (const [grupo, lista] of grupos) {
+			const chave = `${this.file?.path ?? ""}|${modo}|${grupo}`;
+
+			// Durante uma busca, força a abertura mesmo dos grupos que ela tinha fechado antes:
+			// `abertoPorPadrao` só vale na primeira vez que a chave aparece, e um resultado escondido
+			// atrás de um acordeão fechado é um resultado que ela não acha.
+			if (this.filtro) abrirAcordeao(chave);
+
+			const acordeao = criarAcordeao(onde, {
+				chave,
+				titulo: humanizar(grupo),
+				resumo: String(lista.length),
+				// Durante uma busca tudo nasce aberto: obrigar a abrir grupo por grupo até o acerto
+				// anularia o motivo de ter buscado.
+				abertoPorPadrao: this.filtro !== "" || grupos.length <= 3,
+			});
+
+			acordeao.sePreenchido((corpo) => {
+				for (const campo of lista) this.desenharCampo(corpo, campo);
+			});
 		}
 	}
 

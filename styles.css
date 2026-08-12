@@ -183,6 +183,112 @@
 	z-index: 1;
 }
 
+/* --- Acordeão dos grupos --------------------------------------------------------------------- */
+
+/*
+	Portado do Dash Cards (que veio do My Tasks), como manda a especificação dos painéis: o padrão é
+	portado, não reescrito. Aqui ele serve à LISTA de controles — um `global.css` de verdade rende
+	117 tokens, e rolar tudo para achar um grupo foi o que ela relatou.
+
+	Os `!important` da versão original não vieram junto: lá eles existem para vencer o CSS que o app
+	aplica a `button` dentro da aba de Configurações, e esta view não é aquela aba.
+*/
+.visual-editor-vista .ve-acordeao {
+	display: block;
+	width: 100%;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-vista .ve-acordeao-cabecalho {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 8px;
+	width: 100%;
+	margin: 0;
+	padding: 10px 4px;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: 0;
+	cursor: pointer;
+	text-align: left;
+	font-size: var(--font-ui-small);
+	line-height: 1.4;
+	color: var(--text-normal);
+	height: auto;
+	/*
+		O cabeçalho acompanha a rolagem: numa seção longa, ela perde de vista em que grupo está.
+
+		O fundo é opaco, não translúcido: os campos passam POR BAIXO ao rolar, e com transparência o
+		texto deles apareceria atravessado no título.
+	*/
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--background-primary);
+}
+
+.visual-editor-vista .ve-acordeao-cabecalho:hover {
+	background: var(--background-modifier-hover);
+}
+
+.visual-editor-vista .ve-acordeao-textos,
+.visual-editor-vista .ve-acordeao-titulo,
+.visual-editor-vista .ve-acordeao-descricao {
+	text-align: left;
+}
+
+.visual-editor-vista .ve-acordeao-seta {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	transition: transform 0.12s ease;
+}
+
+.visual-editor-vista .ve-acordeao-seta svg {
+	width: 14px;
+	height: 14px;
+}
+
+.visual-editor-vista .ve-acordeao-aberto > .ve-acordeao-cabecalho .ve-acordeao-seta {
+	transform: rotate(90deg);
+}
+
+.visual-editor-vista .ve-acordeao-titulo {
+	font-weight: var(--font-semibold);
+}
+
+.visual-editor-vista .ve-acordeao-textos {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* A contagem à direita: dá noção do tamanho do grupo antes de abrir. */
+.visual-editor-vista .ve-acordeao-resumo {
+	flex-shrink: 0;
+	margin-left: auto;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	background: var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 0 0.45em;
+}
+
+.visual-editor-vista .ve-acordeao-corpo {
+	padding: 2px 4px 10px 22px;
+}
+
+.visual-editor-vista .ve-oculto {
+	display: none;
+}
+
+/* Dentro de um acordeão, o último campo não repete a linha divisória do rodapé da seção. */
+.visual-editor-vista .ve-acordeao-corpo > .ve-campo:last-child {
+	border-bottom: none;
+}
+
 /* --- Um campo ------------------------------------------------------------------------------- */
 
 /*
@@ -406,17 +512,22 @@
 	quadradinho cinza vazio, e ela relatou isso como "a cor da sombra não aparece". Agora a cor é
 	pintada sobre o xadrez, que é o que um seletor de cor faz.
 */
-.visual-editor-vista .ve-swatch.is-alfa {
-	position: relative;
-	isolation: isolate;
-}
+/*
+	O xadrez de transparência, ATRÁS da cor.
 
-.visual-editor-vista .ve-swatch.is-alfa::before {
-	content: "";
-	position: absolute;
-	inset: 0;
-	z-index: -1;
-	border-radius: inherit;
+	Duas tentativas erradas antes desta, e vale registrar as duas:
+
+	1. Xadrez no `background-image` da amostra. Imagem de fundo é pintada POR CIMA da cor de fundo,
+	   então uma cor a 7% de opacidade sumia sob o xadrez.
+	2. Xadrez num `::before` com `z-index: -1`. O `isolation: isolate` que veio junto criou um
+	   contexto de empilhamento, e dentro dele o z-index negativo não alcança o fundo do PAI — o
+	   pseudo-elemento ficou na frente, escondendo a cor do mesmo jeito.
+
+	A forma que funciona é uma só: o xadrez é a ÚLTIMA camada da lista de `background-image`, e a cor
+	da camada entra como primeira camada por cima dele. Quem escreve essa primeira camada é o script
+	(`amostra.style.backgroundImage`), porque a cor vem do arquivo dela.
+*/
+.visual-editor-vista .ve-swatch.is-alfa {
 	background-image:
 		linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%),
 		linear-gradient(-45deg, var(--background-modifier-border) 25%, transparent 25%),
@@ -428,33 +539,34 @@
 }
 
 /*
-	O input de cor é só o MECANISMO: quem se vê é a amostra, que o dispara por `.click()`.
+	O input de cor fica INVISÍVEL POR CIMA da própria amostra, ocupando exatamente a área dela.
 
-	Ele NÃO pode ter `pointer-events: none` nem `display: none`: nesses estados o navegador trata o
-	elemento como não interativo e ignora o clique programático, então a amostra parecia morta —
-	exatamente o que ela relatou nas camadas de sombra. Some por tamanho e opacidade, que não afetam
-	a interatividade.
+	Assim o clique que abre o seletor é um clique de verdade, do usuário, no próprio input — e não um
+	`.click()` sintético num elemento escondido em outro canto. Foi o que resolveu de vez: as duas
+	tentativas anteriores (esconder e disparar por script) dependiam de o navegador aceitar um clique
+	programático, e no Electron do Obsidian ele era ignorado em silêncio — sem erro no console, que
+	foi exatamente o que ela observou.
 
-	`position: absolute` com `left: -9999px` tirava o input do fluxo mas o mantinha "clicável"; aqui
-	ele fica no fluxo com tamanho zero, o que também ancora o seletor do sistema perto da amostra em
-	vez de num canto da tela.
+	A amostra vira o "invólucro" (`position: relative`) e o input cobre os 100%.
 */
+.visual-editor-vista .ve-swatch.is-clicavel {
+	position: relative;
+}
+
 .visual-editor-vista .ve-seletor-cor {
-	width: 0;
-	height: 0;
-	min-width: 0;
-	padding: 0;
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
 	margin: 0;
+	padding: 0;
 	border: none;
 	opacity: 0;
-	overflow: hidden;
-	flex: 0 0 auto;
-	/*
-		`position: absolute` tira o input do fluxo, então o `gap` do flex em volta não abre um buraco
-		entre a amostra e o campo de texto. Diferente de `display: none` e de `pointer-events: none`,
-		posicionar não torna o elemento inerte — o `.click()` da amostra continua abrindo o seletor.
-	*/
-	position: absolute;
+	cursor: pointer;
+	/* O input de cor tem estilo próprio do sistema; zerar evita que ele empurre o layout. */
+	background: transparent;
+	appearance: none;
+	-webkit-appearance: none;
 }
 
 /* Medida e número */

@@ -81,9 +81,7 @@ function desenharCor(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
 	const podeUsarSeletor = hex !== null && !temAlfa;
 
 	const amostra = caixa.createDiv({ cls: "ve-swatch" });
-	amostra.style.background = campo.valor;
-	// O xadrez atrás só aparece quando há transparência de verdade.
-	if (temAlfa) amostra.addClass("is-alfa");
+	pintarAmostra(amostra, campo.valor);
 
 	const entradaTexto = caixa.createEl("input", {
 		cls: "ve-entrada ve-entrada-cor",
@@ -91,31 +89,24 @@ function desenharCor(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
 	});
 
 	if (podeUsarSeletor) {
-		const seletor = caixa.createEl("input", {
+		// Filho da AMOSTRA: o CSS o estica sobre ela, invisível, para o clique ser real.
+		const seletor = amostra.createEl("input", {
 			cls: "ve-seletor-cor",
-			attr: { type: "color", value: hex! },
+			attr: { type: "color", value: hex!, "aria-label": `Escolher ${campo.rotulo}` },
 		});
 
+		// O input transparente por cima recebe o clique e o foco por conta própria — nada de
+		// / na amostra, que criariam um segundo alvo de teclado para o mesmo controle.
 		amostra.addClass("is-clicavel");
-		amostra.setAttr("role", "button");
-		amostra.setAttr("tabindex", "0");
-		amostra.setAttr("aria-label", `Escolher ${campo.rotulo}`);
-		amostra.addEventListener("click", () => abrirSeletor(seletor));
-		amostra.addEventListener("keydown", (evento) => {
-			if (evento.key === "Enter" || evento.key === " ") {
-				evento.preventDefault();
-				abrirSeletor(seletor);
-			}
-		});
 
 		// `input` atualiza a prévia enquanto ela arrasta; `change` é o que grava. Assim ela vê a cor
 		// mudando ao vivo sem escrever no arquivo (e recarregar o dev server) a cada pixel do gesto.
 		seletor.addEventListener("input", () => {
-			amostra.style.background = seletor.value;
+			pintarAmostra(amostra, seletor.value);
 			entradaTexto.value = seletor.value;
 		});
 		seletor.addEventListener("change", () => {
-			amostra.style.background = seletor.value;
+			pintarAmostra(amostra, seletor.value);
 			entradaTexto.value = seletor.value;
 			aoMudar(seletor.value);
 		});
@@ -147,7 +138,7 @@ function desenharCor(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
 	const confirmar = () => {
 		const novo = entradaTexto.value.trim();
 		if (novo === campo.valor) return;
-		amostra.style.background = novo;
+		pintarAmostra(amostra, novo);
 		aoMudar(novo);
 	};
 
@@ -454,8 +445,7 @@ function desenharCamadaSombra(
 	// amostra abre o seletor só quando o valor é opaco, e o resto vai pelo campo de texto ao lado.
 	const cor = partes.cor ?? "currentColor";
 	const amostra = linha.createDiv({ cls: "ve-swatch ve-sombra-swatch" });
-	amostra.style.background = cor;
-	if (corTemAlfa(cor)) amostra.addClass("is-alfa");
+	pintarAmostra(amostra, cor);
 
 	// Declarado ANTES do bloco abaixo: quando não há seletor do sistema, clicar na amostra manda o
 	// foco para cá, e o ouvinte precisa que o campo já exista.
@@ -475,27 +465,18 @@ function desenharCamadaSombra(
 	const separada = separarAlfa(cor);
 
 	if (separada) {
-		const seletor = linha.createEl("input", {
+		// Filho da AMOSTRA: o CSS o estica sobre ela, invisível, para o clique ser real.
+		const seletor = amostra.createEl("input", {
 			cls: "ve-seletor-cor",
-			attr: { type: "color", value: separada.solida },
+			attr: { type: "color", value: separada.solida, "aria-label": `Cor da camada ${indice + 1}` },
 		});
 
 		amostra.addClass("is-clicavel");
-		amostra.setAttr("role", "button");
-		amostra.setAttr("tabindex", "0");
-		amostra.setAttr("aria-label", `Cor da camada ${indice + 1}`);
-		amostra.addEventListener("click", () => abrirSeletor(seletor));
-		amostra.addEventListener("keydown", (evento) => {
-			if (evento.key === "Enter" || evento.key === " ") {
-				evento.preventDefault();
-				abrirSeletor(seletor);
-			}
-		});
 
 		const aplicarCor = (gravar: boolean) => {
 			const nova = juntarAlfa(seletor.value, separada.alfa);
 			partes.cor = nova;
-			amostra.style.background = nova;
+			pintarAmostra(amostra, nova);
 			entradaCor.value = nova;
 			acoes.aoAlterar(gravar);
 		};
@@ -529,8 +510,7 @@ function desenharCamadaSombra(
 			separada.alfa = Math.max(0, Math.min(1, porcento / 100));
 			const nova = juntarAlfa(seletor.value, separada.alfa);
 			partes.cor = nova;
-			amostra.style.background = nova;
-			amostra.toggleClass("is-alfa", separada.alfa < 1);
+			pintarAmostra(amostra, nova);
 			entradaCor.value = nova;
 			acoes.aoAlterar(true);
 		};
@@ -575,8 +555,7 @@ function desenharCamadaSombra(
 	entradaCor.addEventListener("blur", () => {
 		const novo = entradaCor.value.trim();
 		partes.cor = novo || null;
-		amostra.style.background = novo || "currentColor";
-		amostra.toggleClass("is-alfa", corTemAlfa(novo));
+		pintarAmostra(amostra, novo || "currentColor");
 		acoes.aoAlterar(true);
 	});
 	entradaCor.addEventListener("keydown", (evento) => {
@@ -848,23 +827,40 @@ function desenharTextoLongo(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): v
 }
 
 /**
- * Abre o seletor de cor do sistema.
+ * Pinta a cor na amostra, por cima do xadrez de transparência quando houver.
  *
- * `showPicker()` é a API feita para isto e funciona mesmo com o input fora de vista — enquanto o
- * `.click()` sintético depende de o elemento ser considerado interativo, o que falhou nas camadas de
- * sombra e deixou a amostra muda. O `click()` fica como reserva para versões antigas do Electron.
+ * Uma cor com alfa precisa do xadrez ATRÁS para ser legível — sem ele, `rgba(40, 44, 90, 0.07)` é
+ * indistinguível do fundo. E o xadrez só fica atrás de verdade se a cor entrar como uma CAMADA de
+ * `background-image` na frente dele: `background-color` fica sempre embaixo de qualquer imagem, e
+ * foi assim que a cor sumiu nas duas tentativas anteriores.
+ *
+ * `linear-gradient(cor, cor)` é o jeito canônico de usar uma cor sólida como camada de imagem.
  */
-function abrirSeletor(seletor: HTMLInputElement): void {
-	const comPicker = seletor as HTMLInputElement & { showPicker?: () => void };
-	try {
-		if (typeof comPicker.showPicker === "function") {
-			comPicker.showPicker();
-			return;
-		}
-	} catch {
-		// `showPicker` estoura se o documento não estiver em foco; o clique abaixo ainda pode servir.
+function pintarAmostra(amostra: HTMLElement, cor: string): void {
+	const comAlfa = corTemAlfa(cor);
+	amostra.toggleClass("is-alfa", comAlfa);
+
+	if (!comAlfa) {
+		// Sem transparência, o caminho simples basta — e evita sobrescrever o `background-image` que a
+		// classe `is-alfa` deixou para trás.
+		amostra.style.backgroundImage = "";
+		amostra.style.background = cor;
+		return;
 	}
-	seletor.click();
+
+	// A cor primeiro (camada de cima), o xadrez fica por conta do CSS da classe `is-alfa`. As duas
+	// listas se juntam porque `background-image` do style inline substitui a da classe, então o
+	// xadrez é repetido aqui.
+	amostra.style.backgroundColor = "var(--background-primary)";
+	amostra.style.backgroundImage = [
+		`linear-gradient(${cor}, ${cor})`,
+		"linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%)",
+		"linear-gradient(-45deg, var(--background-modifier-border) 25%, transparent 25%)",
+		"linear-gradient(45deg, transparent 75%, var(--background-modifier-border) 75%)",
+		"linear-gradient(-45deg, transparent 75%, var(--background-modifier-border) 75%)",
+	].join(", ");
+	amostra.style.backgroundSize = "auto, 8px 8px, 8px 8px, 8px 8px, 8px 8px";
+	amostra.style.backgroundPosition = "0 0, 0 0, 0 4px, 4px -4px, -4px 0";
 }
 
 /** Botão de ícone padrão do Obsidian, usado na barra da view. */
