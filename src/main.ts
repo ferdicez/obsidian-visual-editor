@@ -6,6 +6,7 @@ import {
 	salvarConfiguracoes,
 } from "./configuracoes";
 import { formatoDe } from "./documento";
+import { ExploradorVisual, TIPO_EXPLORADOR } from "./explorador";
 import { PainelConfigVisualEditor } from "./painel-config";
 import { TIPO_VISTA_VISUAL, VistaVisual } from "./vista-visual";
 
@@ -17,6 +18,21 @@ export default class VisualEditorPlugin extends Plugin {
 		this.addSettingTab(new PainelConfigVisualEditor(this.app, this));
 
 		this.registerView(TIPO_VISTA_VISUAL, (leaf) => new VistaVisual(leaf, this));
+		this.registerView(TIPO_EXPLORADOR, (leaf) => new ExploradorVisual(leaf, this));
+
+		// O ícone no ribbon é o caminho VISÍVEL para o editor.
+		//
+		// Ele existe por um relato dela: *"eu nem lembro como é que abre o modo de editor"*. Até aqui
+		// o único caminho era o menu "..." da aba — invisível para quem não sabe que ele está lá.
+		// Agora o gesto é: clicar no ícone, ver as pastas que têm arquivos editáveis, clicar no
+		// arquivo. O menu da aba e o comando continuam, para quem já está com o arquivo aberto.
+		this.addRibbonIcon("sliders-horizontal", "Editor visual", () => void this.abrirExplorador());
+
+		this.addCommand({
+			id: "abrir-explorador",
+			name: "Abrir o explorador do editor visual",
+			callback: () => void this.abrirExplorador(),
+		});
 
 		// Sem isto, um .css/.json/.txt não abriria de jeito nenhum: o Obsidian só sabe abrir as
 		// extensões que conhece (md, canvas…) e ignora o resto. Registrar aqui faz o arquivo abrir —
@@ -56,6 +72,33 @@ export default class VisualEditorPlugin extends Plugin {
 
 	onunload() {
 		// As extensões registradas são desfeitas pelo próprio Obsidian ao descarregar o plugin.
+		//
+		// As leaves do explorador também não são fechadas de propósito: o Obsidian as descarta
+		// sozinho, e fechá-las aqui apagaria o painel do layout salvo dela — ao reativar o plugin,
+		// sumiria.
+	}
+
+	/** Abre (ou revela) o explorador na barra lateral esquerda. */
+	private async abrirExplorador(): Promise<void> {
+		const existentes = this.app.workspace.getLeavesOfType(TIPO_EXPLORADOR);
+		if (existentes.length > 0) {
+			this.app.workspace.revealLeaf(existentes[0]);
+			return;
+		}
+
+		const leaf = this.app.workspace.getLeftLeaf(false);
+		if (!leaf) return;
+
+		await leaf.setViewState({ type: TIPO_EXPLORADOR, active: true });
+		this.app.workspace.revealLeaf(leaf);
+	}
+
+	/** Redesenha os exploradores abertos — chamado quando as extensões ligadas mudam. */
+	atualizarExploradores(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(TIPO_EXPLORADOR)) {
+			const view = leaf.view;
+			if (view instanceof ExploradorVisual) view.desenhar();
+		}
 	}
 
 	async salvarConfiguracoes(): Promise<void> {

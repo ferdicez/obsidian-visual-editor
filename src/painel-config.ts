@@ -114,6 +114,12 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 
 		this.plugin.configuracoes.extensoes = canonica.join(", ");
 		await this.plugin.salvarConfiguracoes();
+
+		// O explorador lista os arquivos por extensão: ligar `.json` aqui tem de fazer os `.json`
+		// aparecerem na barra lateral na hora. (Abrir os arquivos ainda pede reinício — é o
+		// `registerExtensions` que só vale no carregamento, e a nota abaixo avisa disso.)
+		this.plugin.atualizarExploradores();
+
 		this.display();
 	}
 

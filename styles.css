@@ -778,6 +778,189 @@
 }
 
 /* ---------------------------------------------------------------------------------------------
+   O explorador lateral
+   --------------------------------------------------------------------------------------------- */
+
+.visual-editor-explorador {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0;
+	overflow: hidden;
+}
+
+.visual-editor-explorador .ve-exp-barra {
+	display: flex;
+	align-items: center;
+	gap: 0.3em;
+	padding: 0.5em 0.6em;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex: 0 0 auto;
+}
+
+.visual-editor-explorador .ve-exp-busca {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: var(--font-ui-smaller);
+}
+
+.visual-editor-explorador .ve-exp-botao {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	padding: 0.3em;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-explorador .ve-exp-botao:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.visual-editor-explorador .ve-exp-arvore {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 0.4em 0.3em 2em;
+}
+
+/*
+	A linha da árvore.
+
+	A indentação é `padding-left` calculado no script, não margem: assim a faixa de destaque do hover
+	atravessa o painel inteiro, como no explorador nativo. Com margem, a faixa começaria recuada e as
+	linhas profundas pareceriam de outro painel.
+*/
+.visual-editor-explorador .ve-exp-linha {
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
+	padding-top: 0.25em;
+	padding-bottom: 0.25em;
+	padding-right: 0.5em;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	min-width: 0;
+}
+
+.visual-editor-explorador .ve-exp-linha:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.visual-editor-explorador .ve-exp-linha:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+.visual-editor-explorador .ve-exp-seta {
+	display: flex;
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	transition: transform 100ms ease;
+}
+
+.visual-editor-explorador .ve-exp-seta.is-aberta {
+	transform: rotate(90deg);
+}
+
+.visual-editor-explorador .ve-exp-seta svg {
+	width: 0.85em;
+	height: 0.85em;
+}
+
+.visual-editor-explorador .ve-exp-icone {
+	display: flex;
+	flex: 0 0 auto;
+	color: var(--text-faint);
+}
+
+.visual-editor-explorador .ve-exp-icone svg {
+	width: 0.95em;
+	height: 0.95em;
+}
+
+.visual-editor-explorador .ve-exp-nome {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.visual-editor-explorador .ve-exp-pasta .ve-exp-nome {
+	color: var(--text-normal);
+}
+
+/* A contagem dá noção do peso da pasta antes de abrir. */
+.visual-editor-explorador .ve-exp-contagem {
+	flex: 0 0 auto;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	opacity: 0.7;
+}
+
+/* A extensão como etiqueta: numa lista só de `.css` o sufixo repetido seria ruído no nome. */
+.visual-editor-explorador .ve-exp-ext {
+	flex: 0 0 auto;
+	font-size: var(--font-ui-smaller);
+	font-family: var(--font-monospace);
+	color: var(--text-faint);
+	opacity: 0.6;
+}
+
+/* O arquivo aberto agora — o mesmo destaque do explorador nativo. */
+.visual-editor-explorador .ve-exp-arquivo.is-ativo {
+	background: var(--nav-item-background-active, var(--background-modifier-hover));
+	color: var(--text-normal);
+	font-weight: var(--font-medium);
+}
+
+.visual-editor-explorador .ve-exp-vazio {
+	color: var(--text-faint);
+	font-style: italic;
+	font-size: var(--font-ui-smaller);
+	padding: 1em 0.6em;
+}
+
+.visual-editor-explorador .ve-exp-aviso {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 0.4em;
+	padding: 2.5em 1.2em;
+}
+
+.visual-editor-explorador .ve-exp-aviso-icone {
+	color: var(--text-faint);
+	opacity: 0.4;
+}
+
+.visual-editor-explorador .ve-exp-aviso-icone svg {
+	width: 2em;
+	height: 2em;
+}
+
+.visual-editor-explorador .ve-exp-aviso-titulo {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.visual-editor-explorador .ve-exp-aviso-texto {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------------------------------
    Painel de configurações
    --------------------------------------------------------------------------------------------- */
 
