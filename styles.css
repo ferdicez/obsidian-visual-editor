@@ -145,12 +145,15 @@
 	margin-bottom: 1.5em;
 }
 
+/*
+	Título de seção. Sem caixa alta forçada: o texto vem dos comentários que ELA escreveu no arquivo
+	(`/* === Cores === *​/`) ou do seletor CSS, e reescrevê-lo em maiúsculas descaracterizaria o que
+	ela digitou. Mesmo motivo pelo qual o `uppercase` saiu do My Folders, a pedido dela.
+*/
 .visual-editor-vista .ve-secao-titulo {
-	font-size: var(--font-ui-smaller);
+	font-size: var(--font-ui-small);
 	font-weight: var(--font-semibold);
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
-	color: var(--text-faint);
+	color: var(--text-muted);
 	padding: 0.9em 0 0.5em;
 	position: sticky;
 	top: 0;
@@ -832,6 +835,12 @@
 /*
 	A linha da árvore.
 
+	As medidas saem das MESMAS variáveis que o explorador nativo usa (`--nav-item-*`), e não de
+	valores próprios: a primeira versão usava `--font-ui-smaller` e o texto ficou visivelmente menor
+	que o do painel nativo ao lado — pedido dela para corrigir, e o mesmo erro que já havia sido
+	corrigido no My Folders. Com as variáveis, o tamanho acompanha o tema e a configuração de fonte
+	da interface dela em vez de divergir na próxima troca de tema.
+
 	A indentação é `padding-left` calculado no script, não margem: assim a faixa de destaque do hover
 	atravessa o painel inteiro, como no explorador nativo. Com margem, a faixa começaria recuada e as
 	linhas profundas pareceriam de outro painel.
@@ -839,20 +848,22 @@
 .visual-editor-explorador .ve-exp-linha {
 	display: flex;
 	align-items: center;
-	gap: 0.35em;
-	padding-top: 0.25em;
-	padding-bottom: 0.25em;
-	padding-right: 0.5em;
+	gap: 4px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	padding-right: 8px;
 	border-radius: var(--radius-s);
 	cursor: pointer;
-	font-size: var(--font-ui-smaller);
-	color: var(--text-muted);
+	font-size: var(--nav-item-size, var(--font-ui-small));
+	font-weight: var(--nav-item-weight, inherit);
+	color: var(--nav-item-color, var(--text-muted));
+	line-height: var(--line-height-tight, 1.3);
 	min-width: 0;
 }
 
 .visual-editor-explorador .ve-exp-linha:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
+	background: var(--nav-item-background-hover, var(--background-modifier-hover));
+	color: var(--nav-item-color-hover, var(--text-normal));
 }
 
 .visual-editor-explorador .ve-exp-linha:focus-visible {
@@ -872,8 +883,8 @@
 }
 
 .visual-editor-explorador .ve-exp-seta svg {
-	width: 0.85em;
-	height: 0.85em;
+	width: 14px;
+	height: 14px;
 }
 
 .visual-editor-explorador .ve-exp-icone {
@@ -883,8 +894,8 @@
 }
 
 .visual-editor-explorador .ve-exp-icone svg {
-	width: 0.95em;
-	height: 0.95em;
+	width: 15px;
+	height: 15px;
 }
 
 .visual-editor-explorador .ve-exp-nome {
@@ -899,7 +910,8 @@
 	color: var(--text-normal);
 }
 
-/* A contagem dá noção do peso da pasta antes de abrir. */
+/* A contagem dá noção do peso da pasta antes de abrir. Menor que o nome de propósito: é dado
+   secundário, e igualá-la ao nome competiria com ele. */
 .visual-editor-explorador .ve-exp-contagem {
 	flex: 0 0 auto;
 	font-size: var(--font-ui-smaller);
@@ -992,12 +1004,12 @@
 	padding: 0.2em 4px 0.6em;
 }
 
+/* Sem caixa alta: ela pediu isso no My Folders ("pode deixar tudo em letra minuscula"), e o padrão
+   vale para todos os plugins. O rótulo se distingue por cor e tamanho, que basta. */
 .visual-editor-config-grupo-nome {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-faint);
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
-	margin-bottom: 0.35em;
+	margin-bottom: 4px;
 }
 
 .visual-editor-config-fichas {
@@ -1007,8 +1019,8 @@
 }
 
 .visual-editor-config-ficha {
-	padding: 0.25em 0.7em;
-	background: var(--background-secondary);
+	padding: 4px 10px;
+	background: transparent;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
 	box-shadow: none;
@@ -1019,19 +1031,26 @@
 }
 
 .visual-editor-config-ficha:hover {
+	background: var(--background-modifier-hover);
 	color: var(--text-normal);
-	border-color: var(--interactive-accent);
 }
 
-/* Ligada usa a cor de destaque do tema dela — nada de paleta própria. */
+/*
+	Ligada: fundo com uma fração do accent, não o accent sólido.
+
+	A primeira versão usava `--interactive-accent` cheio e ficou chamativa demais — pedido dela. Uma
+	fileira de fichas sólidas grita mais que o resto do painel, e elas são um estado de configuração,
+	não o botão principal de nada. É o mesmo tratamento que o My Tasks dá aos dias marcados do
+	calendário; o accent sólido, no vault, fica reservado para o item que ela está editando AGORA.
+*/
 .visual-editor-config-ficha.is-ligada {
-	background: var(--interactive-accent);
-	border-color: var(--interactive-accent);
-	color: var(--text-on-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+	border-color: color-mix(in srgb, var(--interactive-accent) 45%, transparent);
+	color: var(--text-normal);
 }
 
 .visual-editor-config-ficha.is-ligada:hover {
-	background: var(--interactive-accent-hover);
+	background: color-mix(in srgb, var(--interactive-accent) 24%, transparent);
 }
 
 .visual-editor-config-vazio {

@@ -36,11 +36,83 @@ export type No = NoPasta | NoArquivo;
  * `editavel` decide o que entra — vem das extensões ligadas nas configurações, então ligar `.json`
  * nas fichas muda esta árvore sem que este módulo saiba o que é uma extensão.
  */
-export function montarArvore(vault: Vault, editavel: (arquivo: TFile) => boolean): NoPasta {
-	return construir(vault.getRoot(), editavel);
+/**
+ * Pastas que nunca entram na árvore, mesmo cheias de arquivos editáveis.
+ *
+ * São pastas de MÁQUINA: dependências instaladas, saída de build, controle de versão. O CSS que
+ * mora nelas não é dela — é de biblioteca de terceiros ou gerado a partir do código-fonte, e nos
+ * dois casos editar ali é trabalho perdido: o próximo `npm install` ou build sobrescreve.
+ *
+ * `node_modules` sozinho pode ter milhares de arquivos e afundaria a lista onde estão os dois ou
+ * três arquivos que ela realmente mexe.
+ */
+const PASTAS_IGNORADAS = new Set([
+	"node_modules",
+	".git",
+	".obsidian",
+	"dist",
+	"build",
+	".next",
+	".nuxt",
+	".svelte-kit",
+	"vendor",
+	"__pycache__",
+	".venv",
+	"venv",
+	"coverage",
+	".cache",
+	"out",
+	"target",
+]);
+
+/** Uma pasta de máquina, que não entra na árvore. */
+function ehIgnorada(pasta: TFolder): boolean {
+	return PASTAS_IGNORADAS.has(pasta.name.toLowerCase());
 }
 
-function construir(pasta: TFolder, editavel: (arquivo: TFile) => boolean): NoPasta {
+/**
+ * Arquivos de configuração de projeto que não são "coisas para ajustar visualmente".
+ *
+ * `package-lock.json` é gerado pelo npm; `tsconfig.json` e `package.json` são configuração de
+ * build, onde um slider não ajuda e um erro quebra o projeto. Eles apareceram na lista dela assim
+ * que `.json` foi ligado, junto dos arquivos que ela realmente queria.
+ *
+ * O casamento é pelo nome inteiro, não por prefixo: um `package.json` dentro de uma pasta de tema
+ * dela continuaria oculto, mas isso é aceitável — arquivo com esse nome é sempre de build.
+ */
+const ARQUIVOS_IGNORADOS = new Set([
+	"package.json",
+	"package-lock.json",
+	"tsconfig.json",
+	"jsconfig.json",
+	"composer.json",
+	"composer.lock",
+	"manifest.json",
+	"versions.json",
+	"data.json",
+	"tsconfig.node.json",
+	"tsconfig.app.json",
+	"pnpm-lock.yaml",
+	"bun.lockb",
+]);
+
+function arquivoIgnorado(arquivo: TFile): boolean {
+	return ARQUIVOS_IGNORADOS.has(arquivo.name.toLowerCase());
+}
+
+export function montarArvore(
+	vault: Vault,
+	editavel: (arquivo: TFile) => boolean,
+	esconderDeMaquina = true
+): NoPasta {
+	return construir(vault.getRoot(), editavel, esconderDeMaquina);
+}
+
+function construir(
+	pasta: TFolder,
+	editavel: (arquivo: TFile) => boolean,
+	esconderDeMaquina: boolean
+): NoPasta {
 	const filhos: No[] = [];
 	let quantos = 0;
 
@@ -50,7 +122,9 @@ function construir(pasta: TFolder, editavel: (arquivo: TFile) => boolean): NoPas
 
 	for (const filho of ordenados) {
 		if (filho instanceof TFolder) {
-			const sub = construir(filho, editavel);
+			if (esconderDeMaquina && ehIgnorada(filho)) continue;
+
+			const sub = construir(filho, editavel, esconderDeMaquina);
 			// A poda: uma subpasta sem nenhum arquivo editável abaixo não entra na árvore.
 			if (sub.quantos > 0) {
 				filhos.push(sub);
@@ -59,7 +133,7 @@ function construir(pasta: TFolder, editavel: (arquivo: TFile) => boolean): NoPas
 			continue;
 		}
 
-		if (filho instanceof TFile && editavel(filho)) {
+		if (filho instanceof TFile && editavel(filho) && !(esconderDeMaquina && arquivoIgnorado(filho))) {
 			filhos.push({ tipo: "arquivo", nome: filho.name, caminho: filho.path, arquivo: filho });
 			quantos++;
 		}

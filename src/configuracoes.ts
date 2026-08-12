@@ -37,6 +37,16 @@ export interface ConfiguracoesVisualEditor {
 	 * ruído. As regras nunca são reescritas por estarem à vista; só o que ela editar.
 	 */
 	mostrarElementos: boolean;
+
+	/**
+	 * Esconder no explorador as pastas e arquivos de máquina?
+	 *
+	 * Ligado por padrão: `node_modules`, `dist`, `package-lock.json` e afins apareceram na lista dela
+	 * assim que `.json` foi ligado, afundando os dois ou três arquivos que ela realmente mexe. O CSS
+	 * que mora nessas pastas é de terceiros ou gerado — editar ali é trabalho que o próximo build
+	 * desfaz.
+	 */
+	esconderArquivosDeMaquina: boolean;
 }
 
 export const CONFIGURACOES_PADRAO: ConfiguracoesVisualEditor = {
@@ -44,6 +54,7 @@ export const CONFIGURACOES_PADRAO: ConfiguracoesVisualEditor = {
 	abrirNaInterface: false,
 	agrupamento: "secao",
 	mostrarElementos: true,
+	esconderArquivosDeMaquina: true,
 };
 
 export async function carregarConfiguracoes(plugin: Plugin): Promise<ConfiguracoesVisualEditor> {

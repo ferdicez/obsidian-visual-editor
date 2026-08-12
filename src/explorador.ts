@@ -89,12 +89,19 @@ export class ExploradorVisual extends ItemView {
 			return;
 		}
 
-		const raiz = montarArvore(this.app.vault, this.ehEditavel);
+		const raiz = montarArvore(
+			this.app.vault,
+			this.ehEditavel,
+			this.plugin.configuracoes.esconderArquivosDeMaquina
+		);
 
 		if (raiz.quantos === 0) {
+			const tipos = ativas.map((e) => `.${e}`).join(", ");
 			this.desenharAviso(
 				"Nenhum arquivo para editar",
-				`Não há arquivos ${ativas.map((e) => `.${e}`).join(", ")} neste cofre. Os tipos ligados ficam nas configurações.`
+				this.plugin.configuracoes.esconderArquivosDeMaquina
+					? `Não há arquivos ${tipos} neste cofre, fora as pastas de máquina (node_modules, dist…) que ficam ocultas. Os dois ajustes estão nas configurações.`
+					: `Não há arquivos ${tipos} neste cofre. Os tipos ligados ficam nas configurações.`
 			);
 			return;
 		}

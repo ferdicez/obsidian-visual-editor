@@ -93,6 +93,21 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 			});
 		}
 
+		new Setting(this.containerEl)
+			.setName("Esconder arquivos de máquina")
+			.setDesc(
+				"No explorador lateral, ignora node_modules, dist, .git e arquivos como package.json e tsconfig.json — o que mora neles é de biblioteca ou gerado pelo build, e editar ali é desfeito na próxima compilação."
+			)
+			.addToggle((alternador) =>
+				alternador
+					.setValue(this.plugin.configuracoes.esconderArquivosDeMaquina)
+					.onChange(async (valor) => {
+						this.plugin.configuracoes.esconderArquivosDeMaquina = valor;
+						await this.plugin.salvarConfiguracoes();
+						this.plugin.atualizarExploradores();
+					})
+			);
+
 		// O Obsidian só aplica `registerExtensions` no carregamento do plugin: mudar a lista aqui não
 		// tem efeito até o próximo reinício. Avisar é melhor do que ela mexer e achar que quebrou.
 		this.containerEl.createDiv({
