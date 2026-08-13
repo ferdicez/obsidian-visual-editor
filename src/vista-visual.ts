@@ -70,6 +70,9 @@ export class VistaVisual extends TextFileView {
 	/** A janelinha que explica um seletor, aberta pelo (i) do cabeçalho de um grupo. */
 	private popoverSeletor = new PopoverToken();
 
+	/** A janelinha de ajuste fino (saturação/luminosidade) de um tom, na aba Design System. */
+	private popoverTom = new PopoverToken();
+
 	/**
 	 * Desfazer/refazer próprio.
 	 *
@@ -183,6 +186,7 @@ export class VistaVisual extends TextFileView {
 		// ficaria órfã na tela depois de fechar a aba.
 		this.popover.fechar();
 		this.popoverSeletor.fechar();
+		this.popoverTom.fechar();
 		this.contentEl.empty();
 	}
 
@@ -802,6 +806,9 @@ export class VistaVisual extends TextFileView {
 				}
 				this.adotarTexto(resultado.texto, `Criar ${humanizar(nome)}`);
 			},
+			abrirAjusteTom: (ancora, rotulo, valorInicial, aoMudar, aoSoltar) => {
+				this.popoverTom.abrirAjusteTom(ancora, rotulo, valorInicial, aoMudar, aoSoltar);
+			},
 		});
 	}
 
@@ -1195,6 +1202,7 @@ export class VistaVisual extends TextFileView {
 		this.descricoesDeRegra = documento.descricoesDeRegra ?? new Map();
 
 		this.popover.fechar();
+		this.popoverTom.fechar();
 		this.salvarAdiado();
 		this.desenhar();
 	}
@@ -1269,6 +1277,9 @@ export class VistaVisual extends TextFileView {
 		this.naoEditaveis = documento.naoEditaveis;
 		this.descricoesDeRegra = documento.descricoesDeRegra ?? new Map();
 
+		// O redesenho abaixo troca todo o DOM da aba: um popover de ajuste de tom ancorado no
+		// elemento antigo ficaria órfão. O gesto que disparou isto (soltar o slider) já terminou.
+		this.popoverTom.fechar();
 		this.salvarAdiado();
 		this.desenhar();
 	}

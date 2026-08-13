@@ -1,5 +1,13 @@
 import { criarAcordeao } from "./acordeao";
 import { Formato } from "./documento";
+import {
+	AjusteTom,
+	PASSOS_LUMINOSIDADE,
+	hexParaHsl,
+	numeroParaPercentual,
+	percentualParaNumero,
+	tomCalculado,
+} from "./escala-cor";
 import { Campo } from "./tipos";
 
 /**
@@ -20,6 +28,14 @@ export interface AcoesDesignSystem {
 	 * Quando falha (sem `:root`/`@theme` no arquivo), mostra o motivo em vez de falhar em silêncio.
 	 */
 	criarToken: (nome: string, valorInicial: string) => void;
+	/** Abre a janelinha de ajuste fino (saturação/luminosidade) de um tom da escala. */
+	abrirAjusteTom: (
+		ancora: HTMLElement,
+		rotulo: string,
+		valorInicial: AjusteTom,
+		aoMudar: (valor: AjusteTom) => void,
+		aoSoltar: (valor: AjusteTom) => void
+	) => void;
 }
 
 /** Um papel de cor dentro de "Cores principais": nome fixo do token + rótulo mostrado na tela. */
@@ -37,13 +53,13 @@ const PAPEIS_PRINCIPAIS: PapelPrincipal[] = [
 ];
 
 /**
- * A escala de tons oferecida por padrão quando o papel ainda não tem token no arquivo.
- *
- * Cinco tons, do mais claro ao mais escuro, girando em torno de um tom médio neutro — só para dar
- * um ponto de partida visual. Uma vez que a usuária escolhe um tom (ou digita um hex), o token
- * grava o valor dela, não um destes.
+ * A escala de tons oferecida por padrão quando o papel ainda não tem token no arquivo — antes de
+ * ela digitar uma cor, não há base nenhuma para calcular uma escala em cima.
  */
 const ESCALA_PADRAO = ["#f5f5f7", "#c7c9d6", "#8a8da3", "#52556b", "#26283a"];
+
+/** Índice do tom-base dentro de `PASSOS_LUMINOSIDADE` — os outros 4 são calculados a partir dele. */
+const INDICE_BASE = PASSOS_LUMINOSIDADE.indexOf(0);
 
 export function desenharDesignSystem(pai: HTMLElement, campos: Campo[], formato: Formato, acoes: AcoesDesignSystem): void {
 	const raiz = pai.createDiv({ cls: "ve-ds" });
@@ -101,11 +117,13 @@ function desenharCartaoCorSimples(pai: HTMLElement, papel: Papel, campo: Campo |
 		attr: { type: "text", spellcheck: "false", value: campo?.valor ?? "", placeholder: campo ? "" : "— vazio —" },
 	});
 
+	// "input" só acompanha o arraste visualmente — gravar a cada pixel destrói e recria este próprio
+	// <input> a cada redesenho, cortando o arraste pela raiz. "change" dispara só ao soltar/fechar.
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
 		bloco.style.background = seletor.value;
-		gravar(seletor.value);
 	});
+	seletor.addEventListener("change", () => gravar(seletor.value));
 
 	const confirmarTexto = () => {
 		const valor = entradaHex.value.trim();
@@ -140,7 +158,7 @@ function desenharSecaoCoresPrincipais(
 	const acordeao = criarAcordeao(raiz, {
 		chave: "design-system|cores-principais",
 		titulo: "1. Cores principais",
-		descricao: "As cinco cores que carregam a identidade do projeto. Cada uma tem uma escala de tons — escolha o que for oficial, ou digite um hex à parte.",
+		descricao: "As cinco cores que carregam a identidade do projeto. Digite um hex e a escala de 2 tons mais claros e 2 mais escuros é calculada sozinha — clique num tom para ajustar saturação e luminosidade dele.",
 		resumo: `${PAPEIS_PRINCIPAIS.length} papéis`,
 		abertoPorPadrao: true,
 	});
@@ -149,15 +167,25 @@ function desenharSecaoCoresPrincipais(
 		const grade = corpo.createDiv({ cls: "ve-ds-grade ve-ds-grade-principais" });
 
 		for (const papel of PAPEIS_PRINCIPAIS) {
-			desenharCorPrincipal(grade, papel, porToken.get(papel.tokenBase) ?? null, acoes);
+			desenharCorPrincipal(grade, papel, porToken.get(papel.tokenBase) ?? null, porToken, acoes);
 		}
 	});
 }
 
+/**
+ * O cartão de "Cores principais": a cor que ela digita fica sempre no tom do meio, e os outros 4 são
+ * calculados a partir dele (mesmo matiz/saturação, luminosidade em passos — ver `escala-cor.ts`).
+ *
+ * Cada tom lateral pode ganhar um ajuste fino de saturação/luminosidade (clicar nele abre o popover
+ * de sliders); o ajuste é salvo como dois tokens à parte (`-tomN-sat`/`-tomN-lum`), relativos ao tom
+ * CALCULADO — não ao hex final. Assim reabrir e ajustar de novo não acumula erro, e trocar a cor
+ * base recalcula a escala inteira sem perder os ajustes relativos que ela já fez.
+ */
 function desenharCorPrincipal(
 	pai: HTMLElement,
 	papel: PapelPrincipal,
 	campo: Campo | null,
+	porToken: Map<string, Campo>,
 	acoes: AcoesDesignSystem
 ): void {
 	const cartao = pai.createDiv({ cls: "ve-ds-cartao" });
@@ -167,71 +195,93 @@ function desenharCorPrincipal(
 	cabecalho.createSpan({ cls: "ve-ds-cartao-rotulo", text: papel.rotulo });
 	if (!campo) cabecalho.createSpan({ cls: "ve-ds-badge-reserva", text: "reserva" });
 
-	const valorAtual = campo?.valor ?? ESCALA_PADRAO[2];
+	const valorBase = campo?.valor ?? ESCALA_PADRAO[INDICE_BASE];
 	const blocoOficial = cartao.createDiv({ cls: "ve-ds-bloco-oficial" });
-	blocoOficial.style.background = valorAtual;
+	blocoOficial.style.background = valorBase;
 
 	const escala = cartao.createDiv({ cls: "ve-ds-escala" });
-	const tons = ESCALA_PADRAO;
 
-	const tonEls: HTMLElement[] = [];
-	for (const tom of tons) {
+	const ajusteDoTom = (indice: number): AjusteTom => ({
+		sat: percentualParaNumero(porToken.get(`${papel.tokenBase}-tom${indice}-sat`)?.valor),
+		lum: percentualParaNumero(porToken.get(`${papel.tokenBase}-tom${indice}-lum`)?.valor),
+	});
+
+	const hslBase = hexParaHsl(valorBase);
+
+	PASSOS_LUMINOSIDADE.forEach((passo, indice) => {
+		if (indice === INDICE_BASE) {
+			// O tom do meio É a cor base — não recalcula, não abre ajuste (não há "tom calculado" a
+			// ajustar quando o tom É o valor que ela digitou).
+			const tonBase = escala.createDiv({ cls: "ve-ds-tom is-base" });
+			tonBase.style.background = valorBase;
+			tonBase.setAttr("aria-label", `${papel.rotulo}: cor base`);
+			return;
+		}
+
+		const ajuste = ajusteDoTom(indice);
+		const hex = hslBase ? tomCalculado(hslBase, passo, ajuste) : ESCALA_PADRAO[indice];
+
 		const tonEl = escala.createDiv({ cls: "ve-ds-tom" });
-		tonEl.style.background = tom;
+		tonEl.style.background = hex;
 		tonEl.setAttr("role", "button");
-		tonEl.setAttr("aria-label", `Usar ${tom} como ${papel.rotulo}`);
-		tonEl.toggleClass("is-oficial", !!campo && ambosProximos(campo.valor, tom));
-		tonEls.push(tonEl);
+		tonEl.setAttr(
+			"aria-label",
+			`Ajustar ${indice < INDICE_BASE ? "tom mais escuro" : "tom mais claro"} de ${papel.rotulo}`
+		);
 
 		tonEl.addEventListener("click", () => {
-			tonEls.forEach((t) => t.removeClass("is-oficial"));
-			tonEl.addClass("is-oficial");
-			blocoOficial.style.background = tom;
-			if (campoEntrada) campoEntrada.value = tom;
-			gravar(tom);
+			if (!hslBase) return; // sem cor base ainda, não há o que ajustar
+			acoes.abrirAjusteTom(
+				tonEl,
+				`${papel.rotulo} · tom ${indice < INDICE_BASE ? "escuro" : "claro"}`,
+				ajuste,
+				(novo) => {
+					// Só a prévia local: gravar a cada arraste redesenharia a tela e cortaria o slider.
+					tonEl.style.background = tomCalculado(hslBase, passo, novo);
+				},
+				(novo) => gravarAjuste(indice, novo)
+			);
 		});
-	}
+	});
 
 	const linhaValor = cartao.createDiv({ cls: "ve-ds-linha-valor" });
 	const campoEntrada = linhaValor.createEl("input", {
 		cls: "ve-ds-entrada-hex",
-		attr: { type: "text", spellcheck: "false", value: campo?.valor ?? "" , placeholder: campo ? "" : "— vazio —" },
+		attr: { type: "text", spellcheck: "false", value: campo?.valor ?? "", placeholder: campo ? "" : "— vazio —" },
 	});
 
 	const confirmarTexto = () => {
 		const valor = campoEntrada.value.trim();
 		if (!valor) return;
 		blocoOficial.style.background = valor;
-		tonEls.forEach((t) => t.toggleClass("is-oficial", ambosProximos(valor, t.style.background)));
-		gravar(valor);
+		gravarBase(valor);
 	};
 	campoEntrada.addEventListener("blur", confirmarTexto);
 	campoEntrada.addEventListener("keydown", (evento) => {
 		if (evento.key === "Enter") campoEntrada.blur();
 	});
 
-	function gravar(valor: string): void {
+	function gravarBase(valor: string): void {
 		cartao.removeClass("is-reserva");
 		const badge = cabecalho.querySelector(".ve-ds-badge-reserva");
 		if (badge) badge.remove();
 
-		if (campo) {
-			acoes.aplicarToken(campo.chave, valor);
-		} else {
-			acoes.criarToken(papel.tokenBase, valor);
-		}
+		if (campo) acoes.aplicarToken(campo.chave, valor);
+		else acoes.criarToken(papel.tokenBase, valor);
 	}
-}
 
-/**
- * Compara dois valores de cor de forma tolerante a formatação (maiúsculas, `background: rgb(...)`
- * vs. hex) para decidir se um tom da escala é "o mesmo" que o valor gravado no arquivo.
- *
- * Não precisa ser exata: é só para destacar visualmente qual tom bate com o token — errar para
- * "nenhum destacado" é seguro, nunca destaca o tom errado por engano de formatação de cor.
- */
-function ambosProximos(a: string, b: string): boolean {
-	return a.trim().toLowerCase() === b.trim().toLowerCase();
+	function gravarAjuste(indice: number, ajuste: AjusteTom): void {
+		const tokenSat = `${papel.tokenBase}-tom${indice}-sat`;
+		const tokenLum = `${papel.tokenBase}-tom${indice}-lum`;
+		const campoSat = porToken.get(tokenSat) ?? null;
+		const campoLum = porToken.get(tokenLum) ?? null;
+
+		if (campoSat) acoes.aplicarToken(campoSat.chave, numeroParaPercentual(ajuste.sat));
+		else acoes.criarToken(tokenSat, numeroParaPercentual(ajuste.sat));
+
+		if (campoLum) acoes.aplicarToken(campoLum.chave, numeroParaPercentual(ajuste.lum));
+		else acoes.criarToken(tokenLum, numeroParaPercentual(ajuste.lum));
+	}
 }
 
 const PAPEIS_STATUS: Papel[] = [
@@ -326,8 +376,8 @@ function desenharCartaoCorTexto(pai: HTMLElement, papel: Papel, campo: Campo | n
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
 		bloco.style.color = seletor.value;
-		gravar(seletor.value);
 	});
+	seletor.addEventListener("change", () => gravar(seletor.value));
 	const confirmarTexto = () => {
 		const valor = entradaHex.value.trim();
 		if (!valor) return;
@@ -398,8 +448,8 @@ function desenharCartaoCard(
 
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
-		gravar(seletor.value);
 	});
+	seletor.addEventListener("change", () => gravar(seletor.value));
 	const confirmarTexto = () => {
 		const valor = entradaHex.value.trim();
 		if (!valor) return;
@@ -719,7 +769,8 @@ function desenharCartaoSombra(
 		attr: { type: "text", value: campoBlur?.valor?.replace(/px$/, "") ?? "0", "aria-label": "Desfoque" },
 	});
 
-	entradaCor.addEventListener("input", () => {
+	entradaCor.addEventListener("input", atualizarPreview);
+	entradaCor.addEventListener("change", () => {
 		gravar(campoCor, `${papel.tokenBase}-cor`, entradaCor.value);
 		atualizarPreview();
 	});
@@ -868,8 +919,8 @@ function desenharCartaoAlerta(pai: HTMLElement, papel: PapelAlerta, campo: Campo
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
 		cartao.style.borderLeftColor = seletor.value;
-		gravar(seletor.value);
 	});
+	seletor.addEventListener("change", () => gravar(seletor.value));
 	const confirmarTexto = () => {
 		const valor = entradaHex.value.trim();
 		if (!valor) return;

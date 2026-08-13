@@ -169,6 +169,72 @@ export class PopoverToken {
 		this.ouvirFechamento(doc, el);
 	}
 
+	/**
+	 * A janelinha de ajuste fino de um tom da escala de "Cores principais": dois sliders (saturação e
+	 * luminosidade), relativos ao tom já calculado — não à cor base.
+	 *
+	 * `valorInicial` é o offset já salvo (0 se o tom nunca foi ajustado). `aoMudar` recebe o offset
+	 * a cada arraste, para o cartão recalcular o hex e atualizar a prévia ao vivo; `aoSoltar` só
+	 * dispara ao soltar o slider — é o que grava no arquivo, no mesmo espírito de "sliders gravam no
+	 * change, não no input" que o resto do plugin já segue.
+	 */
+	abrirAjusteTom(
+		ancora: HTMLElement,
+		rotulo: string,
+		valorInicial: { sat: number; lum: number },
+		aoMudar: (valor: { sat: number; lum: number }) => void,
+		aoSoltar: (valor: { sat: number; lum: number }) => void
+	): void {
+		this.fechar();
+
+		const doc = ancora.doc;
+		const el = doc.body.createDiv({ cls: "visual-editor-popover visual-editor-popover-tom" });
+		this.el = el;
+
+		const cabecalho = el.createDiv({ cls: "ve-pop-cabecalho" });
+		cabecalho.createSpan({ cls: "ve-pop-nome", text: rotulo });
+
+		const fechar = cabecalho.createEl("button", {
+			cls: "ve-pop-fechar",
+			attr: { type: "button", "aria-label": "Fechar" },
+		});
+		setIcon(fechar, "x");
+		fechar.addEventListener("click", () => this.fechar());
+
+		let atual = { ...valorInicial };
+
+		const linhaSat = el.createDiv({ cls: "ve-pop-tom-linha" });
+		linhaSat.createSpan({ cls: "ve-pop-tom-rotulo", text: "Saturação" });
+		const sliderSat = linhaSat.createEl("input", {
+			attr: { type: "range", min: "-50", max: "50", step: "1", value: String(atual.sat) },
+		});
+		const valorSat = linhaSat.createSpan({ cls: "ve-pop-tom-valor", text: `${atual.sat}%` });
+
+		const linhaLum = el.createDiv({ cls: "ve-pop-tom-linha" });
+		linhaLum.createSpan({ cls: "ve-pop-tom-rotulo", text: "Luminosidade" });
+		const sliderLum = linhaLum.createEl("input", {
+			attr: { type: "range", min: "-50", max: "50", step: "1", value: String(atual.lum) },
+		});
+		const valorLum = linhaLum.createSpan({ cls: "ve-pop-tom-valor", text: `${atual.lum}%` });
+
+		sliderSat.addEventListener("input", () => {
+			atual = { ...atual, sat: Number(sliderSat.value) };
+			valorSat.setText(`${atual.sat}%`);
+			aoMudar(atual);
+		});
+		sliderSat.addEventListener("change", () => aoSoltar(atual));
+
+		sliderLum.addEventListener("input", () => {
+			atual = { ...atual, lum: Number(sliderLum.value) };
+			valorLum.setText(`${atual.lum}%`);
+			aoMudar(atual);
+		});
+		sliderLum.addEventListener("change", () => aoSoltar(atual));
+
+		this.posicionar(el, ancora);
+		this.ouvirFechamento(doc, el);
+	}
+
 	/** Fechar ao clicar fora ou com Esc — comum às duas janelinhas. */
 	private ouvirFechamento(doc: Document, el: HTMLElement): void {
 		const cliqueFora = (evento: MouseEvent) => {

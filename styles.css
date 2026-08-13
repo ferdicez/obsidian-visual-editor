@@ -1458,6 +1458,37 @@
 	line-height: 1.4;
 }
 
+/* Popover de ajuste de tom (sliders de saturação/luminosidade), na aba Design System. */
+.visual-editor-popover-tom {
+	width: min(18em, calc(100vw - 2em));
+}
+
+.visual-editor-popover .ve-pop-tom-linha {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	margin-top: 0.6em;
+}
+
+.visual-editor-popover .ve-pop-tom-rotulo {
+	flex: 0 0 6.5em;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.visual-editor-popover .ve-pop-tom-linha input[type="range"] {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.visual-editor-popover .ve-pop-tom-valor {
+	flex: 0 0 3.2em;
+	text-align: right;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-normal);
+}
+
 /*
 	O (i) no cabeçalho de um grupo de elementos.
 
@@ -1975,20 +2006,14 @@
 	border-color: var(--background-modifier-border-hover);
 }
 
-.visual-editor-vista .ve-ds-tom.is-oficial {
-	border-color: var(--text-normal);
+/* O tom do meio É a cor base: não abre popover de ajuste, então não parece clicável. */
+.visual-editor-vista .ve-ds-tom.is-base {
+	cursor: default;
+	border-color: var(--background-modifier-border);
 }
 
-.visual-editor-vista .ve-ds-tom.is-oficial::after {
-	content: "✓";
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 11px;
-	color: #fff;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+.visual-editor-vista .ve-ds-tom.is-base:hover {
+	border-color: var(--background-modifier-border);
 }
 
 .visual-editor-vista .ve-ds-linha-valor {

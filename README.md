@@ -27,6 +27,10 @@ Este plugin troca o paredão por controles:
 | `padding: 8px 16px;` | quatro campos (cima, direita, baixo, esquerda) |
 | `--animacao-ativa: true;` | um interruptor |
 
+Além de editar o que o arquivo já tem, a aba **Design System** (ver [seção própria](#a-aba-design-system))
+cataloga o que um projeto **deveria** ter — cor, tipografia, sombra, espaço — e cria os tokens que
+ainda faltam, direto do formulário.
+
 ---
 
 ## Instalação
@@ -142,6 +146,71 @@ vão desfazer. Guarda 50 passos.
 
 O botão `</>` mostra o texto cru do arquivo. Existe por confiança: dá para conferir a qualquer
 momento que o plugin mexeu só no que devia. Editar por lá também funciona.
+
+---
+
+## A aba Design System
+
+Em qualquer arquivo CSS, uma terceira aba aparece ao lado de Tokens e Elementos: **Design System**.
+Onde as outras duas mostram o que o arquivo *já tem*, esta mostra o que um design system
+*deveria* ter — um catálogo com papéis fixos (cor principal, botão de salvar, sombra de card…),
+prontos para preencher, mesmo que o arquivo ainda não declare nada.
+
+Pensada para quem monta os tokens de um projeto do zero — ou quer arrumar um projeto com
+nomenclatura confusa — sem abrir o navegador: você mexe nos controles, o plugin escreve o CSS.
+
+### Criar o arquivo
+
+Se você ainda não tem um `.css` de tokens, três caminhos criam um novo, com o bloco `:root` já
+pronto para receber os tokens:
+
+- O comando **"Criar arquivo de Design System"** na paleta (`Ctrl+P`).
+- O botão **"Criar arquivo…"** no painel de configurações do plugin.
+- O botão que aparece no explorador lateral quando ele ainda não encontra nenhum arquivo editável.
+
+Qualquer um dos três pergunta a pasta e o nome, cria o arquivo e já abre direto na aba Design
+System.
+
+### As oito seções
+
+| Seção | O que cataloga |
+|---|---|
+| **Cores principais** | As 5 cores que carregam a identidade do projeto, cada uma com uma escala de tons |
+| **Status** | 6 cores de um fluxo com etapas — do início ao concluído |
+| **Background, Texto e Cards** | 5 fundos, 5 cores de texto, 3 cartões (cada um com a própria borda liga/desliga) |
+| **Botões** | Cor por propósito (destrutivo, salvar, cancelar…) e uma forma reutilizável (raio) para todos de uma vez |
+| **Tipografia** | Família, tamanho, peso, entrelinhas e espaço entre letras — por papel (título, texto) |
+| **Sombra** | Cor, deslocamento e desfoque, com uma prévia ao lado |
+| **Espaço e Raio** | Medidas reutilizáveis: o quanto uma borda arredonda, o quanto um respiro separa |
+| **Alerts** | A cor da faixa lateral de cada estado (padrão, erro, sucesso, aviso) |
+
+Um papel sem token ainda no arquivo aparece **"de reserva"** (contorno tracejado): preencher o valor
+declara a variável na hora — não precisa criar o token primeiro para depois usar o catálogo.
+
+### A escala de tons de Cores principais
+
+Cada uma das 5 cores principais tem uma escala de 5 tons, sempre com a cor que você digita **no
+meio**. Os 2 tons mais escuros e os 2 mais claros são calculados sozinhos a partir dela — mesmo
+matiz e saturação, variando só a luminosidade — então digitar `#5b5bd6` já gera a escala inteira,
+sem precisar escolher cinco hex à mão.
+
+Clicando num dos 4 tons calculados (não no do meio, que é a própria cor base), abre uma janelinha
+com dois sliders — **saturação** e **luminosidade** — para ajustar aquele tom especificamente. O
+ajuste é relativo ao tom calculado, e fica salvo como tokens extras no próprio arquivo (ex.:
+`--principal-1-tom0-sat`, `--principal-1-tom0-lum`): trocar a cor principal depois recalcula a
+escala toda mantendo os ajustes relativos que você já fez.
+
+### O toggle de borda
+
+Alguns papéis (Cards, a forma dos Botões) têm um interruptor de borda ao lado do valor de cor. Ele
+grava `1` ou `0` — sem unidade — num token próprio (`--card-1-borda`), pensado para ser usado como
+`calc(var(--card-1-borda, 0) * 1px)` na regra que consome o token: ligado vira `1px` de borda,
+desligado vira `0`.
+
+### O que ainda não tem uma seção
+
+A seção **Formulário** do desenho original (contexto de `border`/`ring` num campo de texto) ainda
+não foi construída — hoje não há um token próprio para ela criar ou aplicar.
 
 ---
 
