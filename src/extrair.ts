@@ -182,6 +182,43 @@ export function extrairVariavel(
 }
 
 /**
+ * Declara uma variável nova na casa de tokens, sem ligá-la a nenhum uso existente.
+ *
+ * É a extração sem a troca: mesmas duas primeiras regras (nome válido, sem colisão, precisa de
+ * `:root`/`@theme`), mas não existe `campo` de origem — não há valor a substituir por `var()`, só
+ * a declaração nova a inserir. É o caminho da aba Design System, que cria tokens "de reserva"
+ * antes de qualquer regra do arquivo usá-los.
+ */
+export function declararVariavel(
+	texto: string,
+	nome: string,
+	valor: string,
+	declaradas: string[]
+): ResultadoExtracao {
+	if (!nomeValido(nome)) {
+		return { ok: false, texto, erro: "O nome precisa começar com -- e conter só letras, números e hífens." };
+	}
+
+	if (declaradas.includes(nome)) {
+		return { ok: false, texto, erro: `A variável ${nome} já existe neste arquivo.` };
+	}
+
+	const root = acharRoot(texto);
+	if (!root) {
+		return {
+			ok: false,
+			texto,
+			erro: "Este arquivo não tem um bloco :root nem @theme para receber a variável. Crie um e tente de novo.",
+		};
+	}
+
+	const novo =
+		texto.slice(0, root.posicao) + `\n${root.indentacao}${nome}: ${valor};` + texto.slice(root.posicao);
+
+	return { ok: true, texto: novo, casa: root.casa };
+}
+
+/**
  * Liga uma propriedade a uma variável que já existe: o valor vira `var(--nome)`.
  *
  * Não acrescenta linha — é uma troca de valor comum, e por isso não precisa das proteções acima.

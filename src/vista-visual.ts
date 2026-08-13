@@ -9,9 +9,10 @@ import {
 	ler,
 	modoDisponivel,
 } from "./documento";
-import { extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
+import { declararVariavel, extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
 import { ModalNomeVariavel, sugerirNome } from "./modal-nome";
 import { abrirAcordeao, criarAcordeao } from "./acordeao";
+import { desenharDesignSystem } from "./design-system";
 import { explicarSeletor } from "./explicar-seletor";
 import { Historico } from "./historico";
 import { PopoverToken } from "./popover-token";
@@ -52,7 +53,7 @@ export class VistaVisual extends TextFileView {
 	 * misturá-los numa lista só produziria dezenas de itens onde ela procura um. A aba some quando o
 	 * arquivo tem só um dos dois.
 	 */
-	private aba: "tokens" | "elementos" = "tokens";
+	private aba: "tokens" | "elementos" | "design-system" = "tokens";
 
 	/**
 	 * As duas listas lado a lado, em vez de uma aba por vez.
@@ -212,6 +213,8 @@ export class VistaVisual extends TextFileView {
 
 		if (this.modoCodigo) {
 			this.desenharCodigo();
+		} else if (this.aba === "design-system") {
+			this.desenharAbaDesignSystem();
 		} else if (this.emparelhadoAtivo) {
 			this.desenharEmparelhado();
 		} else {
@@ -275,20 +278,28 @@ export class VistaVisual extends TextFileView {
 
 		const esquerda = this.barra.createDiv({ cls: "ve-barra-esquerda" });
 
-		// As abas só aparecem quando há os dois assuntos: num arquivo de tokens puro, uma aba
-		// "Elementos" vazia seria só um lugar a mais para ela clicar e não achar nada.
+		// As abas Tokens/Elementos só aparecem quando há os dois assuntos: num arquivo de tokens
+		// puro, uma aba "Elementos" vazia seria só um lugar a mais para ela clicar e não achar nada.
+		// Design System aparece sempre em CSS — não depende do que o arquivo já tem, é o catálogo do
+		// que ele DEVERIA ter.
 		const temOsDois = this.tokens.length > 0 && this.elementos.length > 0;
+		const temDesignSystem = this.formato === "css";
 
-		if (!this.modoCodigo && temOsDois && !this.emparelhado) {
+		if (!this.modoCodigo && (temOsDois || temDesignSystem) && !this.emparelhado) {
 			const abas = esquerda.createDiv({ cls: "ve-abas" });
 
-			const criarAba = (id: "tokens" | "elementos", rotulo: string, quantos: number, dica: string) => {
+			const criarAba = (
+				id: "tokens" | "elementos" | "design-system",
+				rotulo: string,
+				quantos: number | null,
+				dica: string
+			) => {
 				const botao = abas.createEl("button", {
 					cls: "ve-aba",
 					attr: { type: "button", "aria-pressed": String(this.aba === id), title: dica },
 				});
 				botao.createSpan({ text: rotulo });
-				botao.createSpan({ cls: "ve-aba-contagem", text: String(quantos) });
+				if (quantos !== null) botao.createSpan({ cls: "ve-aba-contagem", text: String(quantos) });
 				botao.toggleClass("is-ativa", this.aba === id);
 				botao.addEventListener("click", () => {
 					if (this.aba === id) return;
@@ -297,18 +308,28 @@ export class VistaVisual extends TextFileView {
 				});
 			};
 
-			criarAba(
-				"tokens",
-				"Tokens",
-				this.tokens.length,
-				"As variáveis do arquivo. Mudar uma aqui muda em todo lugar que a usa."
-			);
-			criarAba(
-				"elementos",
-				"Elementos",
-				this.elementos.length,
-				"As regras do arquivo (.card, .botao) e qual variável cada uma usa."
-			);
+			if (temOsDois) {
+				criarAba(
+					"tokens",
+					"Tokens",
+					this.tokens.length,
+					"As variáveis do arquivo. Mudar uma aqui muda em todo lugar que a usa."
+				);
+				criarAba(
+					"elementos",
+					"Elementos",
+					this.elementos.length,
+					"As regras do arquivo (.card, .botao) e qual variável cada uma usa."
+				);
+			}
+			if (temDesignSystem) {
+				criarAba(
+					"design-system",
+					"Design System",
+					null,
+					"O catálogo curado: cores, tipografia, sombra e mais — inclusive papéis que o arquivo ainda não tem."
+				);
+			}
 		}
 
 		const busca = esquerda.createEl("input", {
@@ -322,13 +343,15 @@ export class VistaVisual extends TextFileView {
 			if (this.modoCodigo) this.desenharCodigo();
 			else this.desenharCampos();
 		});
-		if (this.modoCodigo) busca.hide();
+		if (this.modoCodigo || this.aba === "design-system") busca.hide();
 
 		const direita = this.barra.createDiv({ cls: "ve-barra-direita" });
 
-		const contagem = direita.createSpan({ cls: "ve-contagem" });
-		const quantos = this.camposDaAba.length;
-		contagem.setText(quantos === 1 ? "1 controle" : `${quantos} controles`);
+		if (this.aba !== "design-system") {
+			const contagem = direita.createSpan({ cls: "ve-contagem" });
+			const quantos = this.camposDaAba.length;
+			contagem.setText(quantos === 1 ? "1 controle" : `${quantos} controles`);
+		}
 
 		// Desfazer/refazer. O Ctrl+Z do Obsidian não alcança esta view — ele é do editor de texto —,
 		// então os botões são o caminho principal, e o atalho é reimplementado abaixo.
@@ -352,8 +375,9 @@ export class VistaVisual extends TextFileView {
 		);
 		refazer.toggleClass("is-inativo", !this.historico.podeRefazer);
 
-		// Na aba de elementos não há escolha de agrupamento — é sempre por regra.
-		if (!this.modoCodigo && (this.aba !== "elementos" || this.emparelhadoAtivo)) {
+		// Na aba de elementos não há escolha de agrupamento — é sempre por regra. Design System tem
+		// agrupamento próprio (as seções curadas), não o agrupamento genérico das outras duas abas.
+		if (!this.modoCodigo && this.aba !== "design-system" && (this.aba !== "elementos" || this.emparelhadoAtivo)) {
 			this.desenharSeletorAgrupamento(direita);
 		}
 
@@ -751,6 +775,34 @@ export class VistaVisual extends TextFileView {
 				text: `${ocultos} ${ocultos === 1 ? "propriedade de regra está oculta" : "propriedades de regras estão ocultas"} — ligue “Mostrar os elementos” nas configurações para vê-las.`,
 			});
 		}
+	}
+
+	/**
+	 * A aba Design System: o catálogo curado de papéis (ver `design-system.ts`).
+	 *
+	 * As duas ações que ela recebe cobrem os dois estados de um papel: `aplicarToken` troca o valor
+	 * de um token que o arquivo já tem (mesmo caminho de `aplicar`, sem reescrever a estrutura
+	 * dele); `criarToken` declara um token novo na casa de tokens do arquivo (`:root`/`@theme`) —
+	 * é a única das duas que ACRESCENTA linha, por isso passa por `declararVariavel` e por
+	 * `adotarTexto`, que relê o arquivo depois (os deslocamentos de todo mundo mudaram).
+	 */
+	private desenharAbaDesignSystem(): void {
+		desenharDesignSystem(this.corpo, this.campos, this.formato, {
+			aplicarToken: (chave, novo) => {
+				const campo = this.campos.find((c) => c.chave === chave);
+				if (!campo) return;
+				this.aplicar(campo, novo);
+			},
+			criarToken: (nome, valorInicial) => {
+				const declaradas = this.campos.filter((c) => c.papel !== "propriedade").map((c) => c.nomeReal);
+				const resultado = declararVariavel(this.texto, nome, valorInicial, declaradas);
+				if (!resultado.ok) {
+					new Notice(resultado.erro ?? "Não foi possível criar a variável.");
+					return;
+				}
+				this.adotarTexto(resultado.texto, `Criar ${humanizar(nome)}`);
+			},
+		});
 	}
 
 	private desenharCampo(pai: HTMLElement, campo: Campo): void {

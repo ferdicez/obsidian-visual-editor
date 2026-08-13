@@ -1870,3 +1870,132 @@
 	background: var(--background-secondary);
 	border-radius: var(--radius-s);
 }
+
+/* --- Aba Design System ------------------------------------------------------------------------ */
+
+.visual-editor-vista .ve-ds {
+	padding: 4px 4px 24px;
+}
+
+.visual-editor-vista .ve-ds-aviso {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	line-height: 1.5;
+	padding: 1em;
+}
+
+.visual-editor-vista .ve-ds-grade {
+	display: grid;
+	gap: 12px;
+}
+
+.visual-editor-vista .ve-ds-grade-principais {
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.visual-editor-vista .ve-ds-cartao {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.visual-editor-vista .ve-ds-cartao.is-reserva {
+	border-style: dashed;
+}
+
+.visual-editor-vista .ve-ds-cartao-cabecalho {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.visual-editor-vista .ve-ds-cartao-rotulo {
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-ds-cartao.is-reserva .ve-ds-cartao-rotulo {
+	color: var(--text-muted);
+}
+
+.visual-editor-vista .ve-ds-badge-reserva {
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: var(--text-faint);
+	background: var(--background-modifier-border);
+	border-radius: 999px;
+	padding: 0.05em 0.55em;
+}
+
+.visual-editor-vista .ve-ds-bloco-oficial {
+	width: 100%;
+	height: 44px;
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-vista .ve-ds-escala {
+	display: flex;
+	gap: 4px;
+}
+
+.visual-editor-vista .ve-ds-tom {
+	flex: 1;
+	height: 26px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	border: 2px solid transparent;
+	position: relative;
+}
+
+.visual-editor-vista .ve-ds-tom:hover {
+	border-color: var(--background-modifier-border-hover);
+}
+
+.visual-editor-vista .ve-ds-tom.is-oficial {
+	border-color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-ds-tom.is-oficial::after {
+	content: "✓";
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	color: #fff;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.visual-editor-vista .ve-ds-linha-valor {
+	display: flex;
+}
+
+.visual-editor-vista .ve-ds-entrada-hex {
+	width: 100%;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	text-align: center;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 4px 6px;
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-ds-entrada-hex:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -1px;
+}
+
+.visual-editor-vista .ve-ds-entrada-hex::placeholder {
+	font-style: italic;
+	color: var(--text-faint);
+}
