@@ -2016,3 +2016,436 @@
 	font-style: italic;
 	color: var(--text-faint);
 }
+
+/* --- Design System: seções portadas do mockup (Status, Background/Texto/Cards, Botões, Tipografia, Sombra, Espaço/Raio, Alerts) --- */
+
+.visual-editor-vista .ve-ds-rotulo-grupo {
+	font-size: var(--font-ui-smaller);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-weight: 600;
+	color: var(--text-faint);
+	margin: 14px 0 7px;
+}
+
+.visual-editor-vista .ve-ds-rotulo-grupo:first-child {
+	margin-top: 0;
+}
+
+.visual-editor-vista .ve-ds-grade-amostras {
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	margin-bottom: 14px;
+}
+
+.visual-editor-vista .ve-ds-grade-amostras:last-child {
+	margin-bottom: 0;
+}
+
+/* Cartão de amostra simples (cor, medida): retângulo + rótulo + valor, sem escala de tons. */
+.visual-editor-vista .ve-ds-amostra {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	text-align: center;
+}
+
+.visual-editor-vista .ve-ds-amostra.is-reserva {
+	border-style: dashed;
+}
+
+.visual-editor-vista .ve-ds-amostra-rotulo {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-ds-amostra.is-reserva .ve-ds-amostra-rotulo,
+.visual-editor-vista .ve-ds-amostra-card.is-reserva .ve-ds-amostra-rotulo,
+.visual-editor-vista .ve-ds-amostra-tipo.is-reserva .ve-ds-amostra-rotulo,
+.visual-editor-vista .ve-ds-amostra-sombra.is-reserva .ve-ds-amostra-rotulo,
+.visual-editor-vista .ve-ds-amostra-alerta.is-reserva .ve-ds-amostra-rotulo {
+	color: var(--text-muted);
+}
+
+.visual-editor-vista .ve-ds-bloco-cor {
+	width: 100%;
+	height: 40px;
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-vista .ve-ds-bloco-aa {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	background: var(--background-primary);
+}
+
+.visual-editor-vista .ve-ds-campo-valor {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.visual-editor-vista .ve-ds-campo-valor input[type="color"] {
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: none;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	flex: none;
+	background: none;
+}
+
+.visual-editor-vista .ve-ds-entrada-hex-inline {
+	width: 72px;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	text-align: center;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 4px 5px;
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-ds-entrada-hex-inline:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -1px;
+}
+
+.visual-editor-vista .ve-ds-entrada-hex-inline::placeholder {
+	font-style: italic;
+	color: var(--text-faint);
+}
+
+/* interruptor de borda — Cards e forma dos Botões */
+.visual-editor-vista .ve-ds-borda-toggle {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.visual-editor-vista .ve-ds-mini-switch {
+	width: 24px;
+	height: 14px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+	position: relative;
+	flex: none;
+}
+
+.visual-editor-vista .ve-ds-mini-switch::before {
+	content: "";
+	position: absolute;
+	top: 1.5px;
+	left: 1.5px;
+	width: 11px;
+	height: 11px;
+	border-radius: 50%;
+	background: var(--background-primary);
+	transition: left 100ms ease;
+}
+
+.visual-editor-vista .ve-ds-mini-switch.is-ligado {
+	background: var(--interactive-accent);
+}
+
+.visual-editor-vista .ve-ds-mini-switch.is-ligado::before {
+	left: 11.5px;
+}
+
+/* --- Cards --- */
+
+.visual-editor-vista .ve-ds-grade-cards {
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.visual-editor-vista .ve-ds-amostra-card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.visual-editor-vista .ve-ds-amostra-card.is-reserva {
+	border-style: dashed;
+}
+
+.visual-editor-vista .ve-ds-amostra-card h4 {
+	margin: 0;
+	font-size: var(--font-ui-medium);
+}
+
+.visual-editor-vista .ve-ds-amostra-card p {
+	margin: 0;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	line-height: 1.5;
+}
+
+.visual-editor-vista .ve-ds-amostra-card .ve-ds-campo-valor {
+	justify-content: flex-start;
+	margin-top: 4px;
+}
+
+/* --- Botões: forma reutilizável --- */
+
+.visual-editor-vista .ve-ds-grade-forma {
+	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.visual-editor-vista .ve-ds-preview-botao {
+	width: 100%;
+	padding: 9px 12px;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-muted);
+	cursor: pointer;
+	opacity: 0.7;
+}
+
+.visual-editor-vista .ve-ds-preview-botao.is-ativa {
+	opacity: 1;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+/* --- Tipografia --- */
+
+.visual-editor-vista .ve-ds-grade-tipografia {
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.visual-editor-vista .ve-ds-amostra-tipo {
+	padding: 14px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.visual-editor-vista .ve-ds-amostra-tipo.is-reserva {
+	border-style: dashed;
+}
+
+.visual-editor-vista .ve-ds-amostra-tipo .ve-ds-amostra-rotulo {
+	justify-content: flex-start;
+	margin-bottom: 8px;
+}
+
+.visual-editor-vista .ve-ds-amostra-tipo-texto {
+	color: var(--text-normal);
+	margin: 0 0 10px;
+}
+
+.visual-editor-vista .ve-ds-tipo-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+	gap: 6px;
+}
+
+.visual-editor-vista .ve-ds-tipo-field {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 5px 7px;
+}
+
+.visual-editor-vista .ve-ds-tipo-field label {
+	display: block;
+	font-size: 9px;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--text-faint);
+	font-weight: 700;
+	margin-bottom: 2px;
+}
+
+.visual-editor-vista .ve-ds-tipo-field input,
+.visual-editor-vista .ve-ds-tipo-field select {
+	width: 100%;
+	border: none;
+	background: transparent;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	padding: 0;
+}
+
+.visual-editor-vista .ve-ds-tipo-field input:focus,
+.visual-editor-vista .ve-ds-tipo-field select:focus {
+	outline: none;
+	color: var(--interactive-accent);
+}
+
+.visual-editor-vista .ve-ds-outra-fonte {
+	width: 100%;
+	margin-top: 4px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 3px 5px;
+	font-size: var(--font-ui-smaller);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+}
+
+.visual-editor-vista .ve-ds-outra-fonte.is-oculto {
+	display: none;
+}
+
+/* --- Sombra --- */
+
+.visual-editor-vista .ve-ds-grade-sombra {
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.visual-editor-vista .ve-ds-amostra-sombra {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 14px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.visual-editor-vista .ve-ds-amostra-sombra.is-reserva {
+	border-style: dashed;
+}
+
+.visual-editor-vista .ve-ds-amostra-sombra .ve-ds-amostra-rotulo {
+	justify-content: flex-start;
+}
+
+.visual-editor-vista .ve-ds-preview-sombra {
+	height: 56px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+}
+
+.visual-editor-vista .ve-ds-camada-sombra {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.visual-editor-vista .ve-ds-sombra-cor {
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: none;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	flex: none;
+	background: none;
+}
+
+.visual-editor-vista .ve-ds-sombra-mini {
+	width: 100%;
+	min-width: 0;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	text-align: center;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 4px 3px;
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-ds-sombra-mini:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -1px;
+}
+
+/* --- Espaço e Raio --- */
+
+.visual-editor-vista .ve-ds-preview-medida {
+	width: 100%;
+	height: 40px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.visual-editor-vista .ve-ds-espaco-bloco {
+	width: 10px;
+	height: 20px;
+	background: var(--interactive-accent);
+	border-radius: 3px;
+}
+
+/* --- Alerts --- */
+
+.visual-editor-vista .ve-ds-grade-alertas {
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.visual-editor-vista .ve-ds-amostra-alerta {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 12px 14px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-left: 3px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	text-align: left;
+}
+
+.visual-editor-vista .ve-ds-amostra-alerta.is-reserva {
+	border-style: dashed;
+	border-left-style: solid;
+}
+
+.visual-editor-vista .ve-ds-amostra-alerta-icone {
+	font-size: 15px;
+	flex: none;
+	line-height: 1.3;
+}
+
+.visual-editor-vista .ve-ds-amostra-alerta-corpo {
+	flex: 1;
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-ds-amostra-alerta .ve-ds-amostra-rotulo {
+	justify-content: flex-start;
+	margin-bottom: 2px;
+}
+
+.visual-editor-vista .ve-ds-amostra-alerta-msg {
+	display: block;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	margin-bottom: 8px;
+}
+
+.visual-editor-vista .ve-ds-amostra-alerta .ve-ds-campo-valor {
+	justify-content: flex-start;
+}
