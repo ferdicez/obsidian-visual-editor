@@ -1153,6 +1153,12 @@ export class VistaVisual extends TextFileView {
 	// -------------------------------------------------------------------------------------------
 
 	/** Desfaz o último passo. Público para o comando da paleta alcançá-lo. */
+	/** Troca para a aba Design System e redesenha — chamado ao criar o arquivo pelo comando/botão dedicado. */
+	abrirAbaDesignSystem(): void {
+		this.aba = "design-system";
+		this.desenhar();
+	}
+
 	desfazer(): void {
 		const passo = this.historico.desfazer();
 		if (!passo) {

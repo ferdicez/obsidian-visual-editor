@@ -1773,6 +1773,23 @@
 	line-height: 1.5;
 }
 
+/* Discreto de propósito: é um atalho a mais, não a ação principal da tela vazia. */
+.visual-editor-explorador .ve-exp-aviso-botao {
+	margin-top: 0.4em;
+	padding: 0;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+}
+
+.visual-editor-explorador .ve-exp-aviso-botao:hover {
+	color: var(--text-accent);
+	text-decoration: underline;
+}
+
 /* ---------------------------------------------------------------------------------------------
    Painel de configurações
    --------------------------------------------------------------------------------------------- */

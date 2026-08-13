@@ -180,6 +180,13 @@ export class PainelConfigVisualEditor extends PluginSettingTab {
 			cls: "visual-editor-config-nota",
 			text: "Extrair para variável é a única ação do plugin que acrescenta linha ao arquivo: ela cria a declaração no bloco de tokens (:root, ou @theme no Tailwind) e troca o valor da regra por var(--nome). Todo o resto só reescreve o valor que você editou.",
 		});
+
+		new Setting(this.containerEl)
+			.setName("Design System")
+			.setDesc("Cria um arquivo CSS novo, pronto para receber os tokens, e já abre na aba Design System.")
+			.addButton((botao) =>
+				botao.setButtonText("Criar arquivo…").onClick(() => this.plugin.abrirModalNovoDesignSystem())
+			);
 	}
 
 	private montarAbertura(): void {

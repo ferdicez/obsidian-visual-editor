@@ -101,7 +101,10 @@ export class ExploradorVisual extends ItemView {
 				"Nenhum arquivo para editar",
 				this.plugin.configuracoes.esconderArquivosDeMaquina
 					? `Não há arquivos ${tipos} neste cofre, fora as pastas de máquina (node_modules, dist…) que ficam ocultas. Os dois ajustes estão nas configurações.`
-					: `Não há arquivos ${tipos} neste cofre. Os tipos ligados ficam nas configurações.`
+					: `Não há arquivos ${tipos} neste cofre. Os tipos ligados ficam nas configurações.`,
+				// Sem projeto nenhum no cofre ainda, o caminho mais provável é começar do zero — o
+				// botão evita ela ter de sair daqui pra criar um .css com :root na mão.
+				ativas.includes("css") ? () => this.plugin.abrirModalNovoDesignSystem() : undefined
 			);
 			return;
 		}
@@ -129,11 +132,20 @@ export class ExploradorVisual extends ItemView {
 		this.marcarAtivo();
 	}
 
-	private desenharAviso(titulo: string, texto: string): void {
+	private desenharAviso(titulo: string, texto: string, aoClicarCriar?: () => void): void {
 		const caixa = this.arvoreEl.createDiv({ cls: "ve-exp-aviso" });
 		setIcon(caixa.createDiv({ cls: "ve-exp-aviso-icone" }), "sliders-horizontal");
 		caixa.createDiv({ cls: "ve-exp-aviso-titulo", text: titulo });
 		caixa.createDiv({ cls: "ve-exp-aviso-texto", text: texto });
+
+		if (aoClicarCriar) {
+			const botao = caixa.createEl("button", {
+				cls: "ve-exp-aviso-botao",
+				attr: { type: "button" },
+				text: "Criar arquivo de Design System",
+			});
+			botao.addEventListener("click", aoClicarCriar);
+		}
 	}
 
 	private desenharBarra(pai: HTMLElement): void {

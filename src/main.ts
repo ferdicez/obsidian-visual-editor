@@ -7,6 +7,7 @@ import {
 } from "./configuracoes";
 import { formatoDe } from "./documento";
 import { ExploradorVisual, TIPO_EXPLORADOR } from "./explorador";
+import { ModalNovoArquivo } from "./modal-novo-arquivo";
 import { PainelConfigVisualEditor } from "./painel-config";
 import { TIPO_VISTA_VISUAL, VistaVisual } from "./vista-visual";
 
@@ -32,6 +33,12 @@ export default class VisualEditorPlugin extends Plugin {
 			id: "abrir-explorador",
 			name: "Abrir o explorador do editor visual",
 			callback: () => void this.abrirExplorador(),
+		});
+
+		this.addCommand({
+			id: "criar-design-system",
+			name: "Criar arquivo de Design System",
+			callback: () => this.abrirModalNovoDesignSystem(),
 		});
 
 		// Sem isto, um .css/.json/.txt não abriria de jeito nenhum: o Obsidian só sabe abrir as
@@ -117,6 +124,44 @@ export default class VisualEditorPlugin extends Plugin {
 
 		await leaf.setViewState({ type: TIPO_EXPLORADOR, active: true });
 		this.app.workspace.revealLeaf(leaf);
+	}
+
+	/**
+	 * Abre o modal que pergunta pasta e nome, e cria o arquivo em seguida.
+	 *
+	 * Existe porque a aba Design System só aparece dentro de um CSS que já está aberto — sem um
+	 * atalho que cria o arquivo, ela precisaria montar um `.css` com `:root {}` na mão antes de ver a
+	 * aba pela primeira vez.
+	 */
+	abrirModalNovoDesignSystem(): void {
+		new ModalNovoArquivo(this.app, "design-system", (caminho) => void this.criarArquivoDesignSystem(caminho)).open();
+	}
+
+	/**
+	 * Cria o arquivo com um `:root` vazio e já abre no editor visual, na aba Design System.
+	 *
+	 * O `:root` não é opcional: `declararVariavel` (ver `extrair.ts`) recusa criar token sem um
+	 * `:root`/`@theme` já existente no arquivo — nascer sem ele faria o primeiro clique na aba nova
+	 * falhar com um erro que não faria sentido pra quem acabou de criar o arquivo justamente pra isso.
+	 */
+	private async criarArquivoDesignSystem(caminho: string): Promise<void> {
+		let arquivo: TFile;
+		try {
+			arquivo = await this.app.vault.create(caminho, ":root {\n}\n");
+		} catch (erro) {
+			new Notice(`Não foi possível criar o arquivo: ${erro instanceof Error ? erro.message : erro}`);
+			return;
+		}
+
+		const leaf = this.app.workspace.getLeaf(false);
+		await leaf.setViewState({
+			type: TIPO_VISTA_VISUAL,
+			state: { file: arquivo.path },
+			active: true,
+		});
+
+		const view = leaf.view;
+		if (view instanceof VistaVisual) view.abrirAbaDesignSystem();
 	}
 
 	/** Redesenha os exploradores abertos — chamado quando as extensões ligadas mudam. */
