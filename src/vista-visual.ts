@@ -1,4 +1,4 @@
-import { Menu, Notice, TextFileView, WorkspaceLeaf, debounce, setIcon } from "obsidian";
+import { Menu, Notice, TextFileView, TFile, WorkspaceLeaf, debounce, setIcon } from "obsidian";
 import { botaoIcone, desenharControle } from "./controles";
 import {
 	Formato,
@@ -9,17 +9,29 @@ import {
 	ler,
 	modoDisponivel,
 } from "./documento";
-import { declararVariavel, extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
+import { declararVariavel, declararVariavelDark, extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
 import { ModalNomeVariavel, sugerirNome } from "./modal-nome";
 import { abrirAcordeao, criarAcordeao } from "./acordeao";
 import { desenharDesignSystem } from "./design-system";
 import { explicarSeletor } from "./explicar-seletor";
 import { Historico } from "./historico";
+import { ModalEscolherFonte } from "./modal-escolher-fonte";
+import { ModalEscolherIconeDS } from "./modal-escolher-icone-ds";
 import { PopoverToken } from "./popover-token";
 import type VisualEditorPlugin from "./main";
 import { Campo, humanizar } from "./tipos";
 
 export const TIPO_VISTA_VISUAL = "visual-editor-vista";
+
+/**
+ * A última aba usada em cada arquivo, por caminho. Vive no MÓDULO, não na instância — mesmo motivo
+ * do `abertos` de `acordeao.ts`: a view é destruída e recriada a cada vez que o arquivo é reaberto
+ * (fechar a aba, trocar de nota e voltar), então guardar isso em `this` esqueceria toda vez.
+ *
+ * Pedido dela: reabrir um arquivo onde a última coisa que editou foi o Design System deveria cair
+ * direto lá, em vez de sempre em Tokens — hoje é o único jeito de "voltar" sem fechar e reabrir.
+ */
+const ultimaAbaPorArquivo = new Map<string, "tokens" | "elementos" | "design-system">();
 
 /**
  * A view que mostra o arquivo como interface em vez de código.
@@ -54,6 +66,13 @@ export class VistaVisual extends TextFileView {
 	 * arquivo tem só um dos dois.
 	 */
 	private aba: "tokens" | "elementos" | "design-system" = "tokens";
+
+	/**
+	 * Qual tema a aba Design System está editando: claro grava em `:root`/`@theme`, escuro grava
+	 * dentro de `.dark` (criando o bloco se preciso — ver `declararVariavelDark`). É navegação, não
+	 * preferência salva: sempre nasce "claro" ao abrir o arquivo, como o resto do plugin.
+	 */
+	private modoTemaDesignSystem: "claro" | "escuro" = "claro";
 
 	/**
 	 * As duas listas lado a lado, em vez de uma aba por vez.
@@ -142,6 +161,17 @@ export class VistaVisual extends TextFileView {
 		}
 
 		this.desenhar();
+	}
+
+	/**
+	 * Chamado uma vez ao abrir o arquivo — diferente de `setViewData`, que roda de novo a cada
+	 * auto-salvamento (o Obsidian relê o arquivo que ele mesmo acabou de gravar). É por isso que a
+	 * última aba usada mora aqui: ler o `Map` dentro de `setViewData` sobrescreveria a aba atual a
+	 * cada gravação, mesmo sem ela ter clicado em nada.
+	 */
+	async onLoadFile(file: TFile): Promise<void> {
+		this.aba = ultimaAbaPorArquivo.get(file.path) ?? "tokens";
+		await super.onLoadFile(file);
 	}
 
 	clear(): void {
@@ -282,14 +312,16 @@ export class VistaVisual extends TextFileView {
 
 		const esquerda = this.barra.createDiv({ cls: "ve-barra-esquerda" });
 
-		// As abas Tokens/Elementos só aparecem quando há os dois assuntos: num arquivo de tokens
-		// puro, uma aba "Elementos" vazia seria só um lugar a mais para ela clicar e não achar nada.
-		// Design System aparece sempre em CSS — não depende do que o arquivo já tem, é o catálogo do
-		// que ele DEVERIA ter.
-		const temOsDois = this.tokens.length > 0 && this.elementos.length > 0;
+		// Cada aba aparece conforme o PRÓPRIO conteúdo, não em conjunto: antes "Tokens" só nascia
+		// quando havia TAMBÉM algum elemento, e um arquivo de Design System (só tokens, nenhuma
+		// regra) nunca chegava a mostrá-la — a única aba visível era Design System, sem como voltar
+		// a não ser fechando e reabrindo o arquivo. Relatado por ela: *"depois que eu clico em Design
+		// System, não tem nenhum botão para voltar (...) tenho que fechar a página e reabrir"*.
+		const temTokens = this.tokens.length > 0;
+		const temElementos = this.elementos.length > 0;
 		const temDesignSystem = this.formato === "css";
 
-		if (!this.modoCodigo && (temOsDois || temDesignSystem) && !this.emparelhado) {
+		if (!this.modoCodigo && (temTokens || temElementos || temDesignSystem) && !this.emparelhado) {
 			const abas = esquerda.createDiv({ cls: "ve-abas" });
 
 			const criarAba = (
@@ -308,17 +340,22 @@ export class VistaVisual extends TextFileView {
 				botao.addEventListener("click", () => {
 					if (this.aba === id) return;
 					this.aba = id;
+					// A última aba usada persiste por arquivo — ver `ultimaAbaPorArquivo` no topo do
+					// módulo — para reabrir o arquivo voltar de onde ela parou.
+					if (this.file) ultimaAbaPorArquivo.set(this.file.path, id);
 					this.desenhar();
 				});
 			};
 
-			if (temOsDois) {
+			if (temTokens) {
 				criarAba(
 					"tokens",
 					"Tokens",
 					this.tokens.length,
 					"As variáveis do arquivo. Mudar uma aqui muda em todo lugar que a usa."
 				);
+			}
+			if (temElementos) {
 				criarAba(
 					"elementos",
 					"Elementos",
@@ -385,7 +422,9 @@ export class VistaVisual extends TextFileView {
 			this.desenharSeletorAgrupamento(direita);
 		}
 
-		if (!this.modoCodigo && temOsDois) {
+		// O emparelhado só faz sentido com os DOIS assuntos presentes — diferente da barra de abas,
+		// que agora mostra cada uma conforme o próprio conteúdo.
+		if (!this.modoCodigo && this.tokens.length > 0 && this.elementos.length > 0) {
 			const botao = botaoIcone(
 				direita,
 				this.emparelhado ? "square" : "columns-2",
@@ -784,20 +823,35 @@ export class VistaVisual extends TextFileView {
 	/**
 	 * A aba Design System: o catálogo curado de papéis (ver `design-system.ts`).
 	 *
-	 * As duas ações que ela recebe cobrem os dois estados de um papel: `aplicarToken` troca o valor
-	 * de um token que o arquivo já tem (mesmo caminho de `aplicar`, sem reescrever a estrutura
-	 * dele); `criarToken` declara um token novo na casa de tokens do arquivo (`:root`/`@theme`) —
-	 * é a única das duas que ACRESCENTA linha, por isso passa por `declararVariavel` e por
-	 * `adotarTexto`, que relê o arquivo depois (os deslocamentos de todo mundo mudaram).
+	 * As duas ações principais cobrem os dois estados de um papel: `aplicarToken` troca o valor de
+	 * um token que o arquivo já tem (mesmo caminho de `aplicar`, sem reescrever a estrutura dele) —
+	 * funciona igual nos dois modos, porque `design-system.ts` já escolheu o `Campo` certo (o de
+	 * `.dark` quando existe e o modo é escuro). `criarToken` declara um token novo, e é onde o modo
+	 * importa: no claro vai para `:root`/`@theme` (`declararVariavel`); no escuro vai para dentro de
+	 * `.dark`, criando o bloco se ainda não existir (`declararVariavelDark`). É a única das duas que
+	 * ACRESCENTA linha, por isso passa por `adotarTexto`, que relê o arquivo depois.
 	 */
 	private desenharAbaDesignSystem(): void {
-		desenharDesignSystem(this.corpo, this.campos, this.formato, {
+		desenharDesignSystem(this.corpo, this.campos, this.formato, this.modoTemaDesignSystem, {
 			aplicarToken: (chave, novo) => {
 				const campo = this.campos.find((c) => c.chave === chave);
 				if (!campo) return;
 				this.aplicar(campo, novo);
 			},
 			criarToken: (nome, valorInicial) => {
+				if (this.modoTemaDesignSystem === "escuro") {
+					const declaradasDark = this.campos
+						.filter((c) => c.papel !== "propriedade" && c.grupo === ".dark")
+						.map((c) => c.nomeReal);
+					const resultado = declararVariavelDark(this.texto, nome, valorInicial, declaradasDark);
+					if (!resultado.ok) {
+						new Notice(resultado.erro ?? "Não foi possível criar a variável em .dark.");
+						return;
+					}
+					this.adotarTexto(resultado.texto, `Criar ${humanizar(nome)} (escuro)`);
+					return;
+				}
+
 				const declaradas = this.campos.filter((c) => c.papel !== "propriedade").map((c) => c.nomeReal);
 				const resultado = declararVariavel(this.texto, nome, valorInicial, declaradas);
 				if (!resultado.ok) {
@@ -806,8 +860,18 @@ export class VistaVisual extends TextFileView {
 				}
 				this.adotarTexto(resultado.texto, `Criar ${humanizar(nome)}`);
 			},
-			abrirAjusteTom: (ancora, rotulo, valorInicial, aoMudar, aoSoltar) => {
-				this.popoverTom.abrirAjusteTom(ancora, rotulo, valorInicial, aoMudar, aoSoltar);
+			abrirAjusteTom: (ancora, rotulo, valorInicial, hexInicial, aoMudar, aoSoltar) => {
+				this.popoverTom.abrirAjusteTom(ancora, rotulo, valorInicial, hexInicial, aoMudar, aoSoltar);
+			},
+			abrirSeletorFonte: (fontes, aoEscolher) => {
+				new ModalEscolherFonte(this.app, fontes, aoEscolher).open();
+			},
+			abrirSeletorIcone: (aoEscolher) => {
+				new ModalEscolherIconeDS(this.app, aoEscolher).open();
+			},
+			trocarModoTema: (modo) => {
+				this.modoTemaDesignSystem = modo;
+				this.desenhar();
 			},
 		});
 	}

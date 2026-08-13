@@ -171,18 +171,21 @@ export class PopoverToken {
 
 	/**
 	 * A janelinha de ajuste fino de um tom da escala de "Cores principais": dois sliders (saturação e
-	 * luminosidade), relativos ao tom já calculado — não à cor base.
+	 * luminosidade), relativos ao tom já calculado — não à cor base — e um botão para copiar o hex
+	 * resultante, para reusar em outro lugar do sistema sem precisar editar nada.
 	 *
-	 * `valorInicial` é o offset já salvo (0 se o tom nunca foi ajustado). `aoMudar` recebe o offset
-	 * a cada arraste, para o cartão recalcular o hex e atualizar a prévia ao vivo; `aoSoltar` só
-	 * dispara ao soltar o slider — é o que grava no arquivo, no mesmo espírito de "sliders gravam no
-	 * change, não no input" que o resto do plugin já segue.
+	 * `valorInicial` é o offset já salvo (0 se o tom nunca foi ajustado). `aoMudar` recebe o offset a
+	 * cada arraste, para o cartão recalcular o hex e atualizar a prévia ao vivo — o popover não
+	 * conhece HSL, então é o retorno de `aoMudar` que informa o hex atual, usado só pelo botão de
+	 * copiar. `aoSoltar` dispara ao soltar o slider — o que grava no arquivo, no mesmo espírito de
+	 * "sliders gravam no change, não no input" que o resto do plugin já segue.
 	 */
 	abrirAjusteTom(
 		ancora: HTMLElement,
 		rotulo: string,
 		valorInicial: { sat: number; lum: number },
-		aoMudar: (valor: { sat: number; lum: number }) => void,
+		hexInicial: string,
+		aoMudar: (valor: { sat: number; lum: number }) => string,
 		aoSoltar: (valor: { sat: number; lum: number }) => void
 	): void {
 		this.fechar();
@@ -202,6 +205,7 @@ export class PopoverToken {
 		fechar.addEventListener("click", () => this.fechar());
 
 		let atual = { ...valorInicial };
+		let hexAtual = hexInicial;
 
 		const linhaSat = el.createDiv({ cls: "ve-pop-tom-linha" });
 		linhaSat.createSpan({ cls: "ve-pop-tom-rotulo", text: "Saturação" });
@@ -220,16 +224,39 @@ export class PopoverToken {
 		sliderSat.addEventListener("input", () => {
 			atual = { ...atual, sat: Number(sliderSat.value) };
 			valorSat.setText(`${atual.sat}%`);
-			aoMudar(atual);
+			hexAtual = aoMudar(atual);
+			botaoCopiar.setText(hexAtual);
 		});
 		sliderSat.addEventListener("change", () => aoSoltar(atual));
 
 		sliderLum.addEventListener("input", () => {
 			atual = { ...atual, lum: Number(sliderLum.value) };
 			valorLum.setText(`${atual.lum}%`);
-			aoMudar(atual);
+			hexAtual = aoMudar(atual);
+			botaoCopiar.setText(hexAtual);
 		});
 		sliderLum.addEventListener("change", () => aoSoltar(atual));
+
+		const linhaCopiar = el.createDiv({ cls: "ve-pop-tom-copiar" });
+		const botaoCopiar = linhaCopiar.createEl("button", {
+			cls: "ve-pop-tom-copiar-botao",
+			attr: { type: "button" },
+			text: hexAtual,
+		});
+		botaoCopiar.addEventListener("click", () => {
+			void navigator.clipboard.writeText(hexAtual).then(() => {
+				const original = hexAtual;
+				botaoCopiar.setText("Copiado!");
+				window.setTimeout(() => {
+					// Só devolve o texto se o valor ainda for o mesmo — arrastar um slider durante a
+					// janela do aviso já teria trocado o texto para o hex novo, e voltar por cima
+					// desfaria essa atualização.
+					if (botaoCopiar.getText() === "Copiado!" && hexAtual === original) {
+						botaoCopiar.setText(hexAtual);
+					}
+				}, 1200);
+			});
+		});
 
 		this.posicionar(el, ancora);
 		this.ouvirFechamento(doc, el);

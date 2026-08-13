@@ -1489,6 +1489,29 @@
 	color: var(--text-normal);
 }
 
+.visual-editor-popover .ve-pop-tom-copiar {
+	margin-top: 0.7em;
+	padding-top: 0.6em;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-popover .ve-pop-tom-copiar-botao {
+	width: 100%;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 0.4em 0.6em;
+	color: var(--text-normal);
+	cursor: pointer;
+}
+
+.visual-editor-popover .ve-pop-tom-copiar-botao:hover {
+	background: var(--background-modifier-hover);
+	border-color: var(--background-modifier-border-hover);
+}
+
 /*
 	O (i) no cabeçalho de um grupo de elementos.
 
@@ -1874,7 +1897,7 @@
 	border-radius: var(--radius-s);
 	box-shadow: none;
 	color: var(--text-muted);
-	font-family: var(--font-monospace);
+	font-family: var(--font-interface);
 	font-size: var(--font-ui-smaller);
 	cursor: pointer;
 }
@@ -2123,6 +2146,12 @@
 	flex-wrap: wrap;
 }
 
+/*
+	O <input type="color"> nativo tem padding interno próprio do sistema — sem estilizar o
+	pseudo-elemento do swatch, mesmo uma caixa quadrada (18x18) desenha um traço fino por dentro em
+	vez de preencher o quadrado com a cor. As regras ::-webkit-color-swatch-* fazem o retângulo de
+	cor ocupar a caixa inteira, do mesmo jeito que o mockup HTML original já fazia.
+*/
 .visual-editor-vista .ve-ds-campo-valor input[type="color"] {
 	width: 18px;
 	height: 18px;
@@ -2132,6 +2161,16 @@
 	cursor: pointer;
 	flex: none;
 	background: none;
+}
+
+.visual-editor-vista .ve-ds-campo-valor input[type="color"]::-webkit-color-swatch-wrapper {
+	padding: 0;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-ds-campo-valor input[type="color"]::-webkit-color-swatch {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
 }
 
 .visual-editor-vista .ve-ds-entrada-hex-inline {
@@ -2341,6 +2380,48 @@
 	display: none;
 }
 
+/* O botão que abre o ModalEscolherFonte — o nome já aparece na própria tipografia. */
+.visual-editor-vista .ve-ds-botao-fonte {
+	display: block;
+	width: 100%;
+	text-align: left;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-normal);
+	padding: 0;
+	cursor: pointer;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.visual-editor-vista .ve-ds-botao-fonte:hover {
+	color: var(--interactive-accent);
+}
+
+.visual-editor-vista .ve-ds-botao-fonte.is-oculto {
+	display: none;
+}
+
+.visual-editor-vista .ve-ds-link-outra-fonte {
+	display: block;
+	margin-top: 4px;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	font-size: 9.5px;
+	color: var(--text-faint);
+	padding: 0;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.visual-editor-vista .ve-ds-link-outra-fonte:hover {
+	color: var(--text-muted);
+}
+
 /* --- Sombra --- */
 
 .visual-editor-vista .ve-ds-grade-sombra {
@@ -2386,6 +2467,16 @@
 	cursor: pointer;
 	flex: none;
 	background: none;
+}
+
+.visual-editor-vista .ve-ds-sombra-cor::-webkit-color-swatch-wrapper {
+	padding: 0;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-ds-sombra-cor::-webkit-color-swatch {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
 }
 
 .visual-editor-vista .ve-ds-sombra-mini {
@@ -2473,4 +2564,170 @@
 
 .visual-editor-vista .ve-ds-amostra-alerta .ve-ds-campo-valor {
 	justify-content: flex-start;
+}
+
+/* --- Modal de escolher fonte (busca fuzzy, cada linha na própria tipografia) --- */
+
+.ve-fonte-sugestao {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1em;
+}
+
+.ve-fonte-sugestao-amostra {
+	font-size: 1.15em;
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ve-fonte-sugestao-nome {
+	flex: 0 0 auto;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+/* --- Modal de escolher ícone (busca fuzzy Lucide, na seção Ícones do Design System) --- */
+
+.ve-icone-sugestao {
+	display: flex;
+	align-items: center;
+	gap: 0.7em;
+}
+
+.ve-icone-sugestao-icone {
+	display: flex;
+	align-items: center;
+	color: var(--text-muted);
+	flex: none;
+}
+
+.ve-icone-sugestao-icone svg {
+	width: 16px;
+	height: 16px;
+}
+
+.ve-icone-sugestao-nome {
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
+
+/* --- Design System: grupos de forma (Cards, Ícones) e utilidades pequenas --- */
+
+/* O cartão de um grupo de forma é mais largo que uma amostra comum — raio + borda + sombra juntos. */
+.visual-editor-vista .ve-ds-grade-forma-card {
+	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+
+.visual-editor-vista .ve-ds-amostra-forma-card {
+	gap: 10px;
+}
+
+/* Select genérico (sombra do grupo de Cards, forma dos Ícones) — mesma casca dos outros campos. */
+.visual-editor-vista .ve-ds-select-sombra {
+	width: 100%;
+	font-size: var(--font-ui-smaller);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 4px 5px;
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-ds-rotulo-inline {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	flex: none;
+}
+
+/* Raio/espaço "menorzinho" (Raio 2, Raio 3, Espaço 2) — o principal continua no tamanho de sempre. */
+.visual-editor-vista .ve-ds-preview-medida.is-pequeno {
+	height: 28px;
+}
+
+/* --- Ícones --- */
+
+.visual-editor-vista .ve-ds-preview-icone {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 10px 0;
+}
+
+.visual-editor-vista .ve-ds-icone-bolha {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-ds-icone-bolha svg {
+	width: 18px;
+	height: 18px;
+}
+
+.visual-editor-vista .ve-ds-icone-bolha.is-sem-fundo {
+	background: none !important;
+}
+
+/* --- Cor de borda escolível (Botões, Cards) --- */
+
+.visual-editor-vista .ve-ds-campo-valor-coluna {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+}
+
+.visual-editor-vista .ve-ds-select-cor-borda {
+	width: 100%;
+}
+
+.visual-editor-vista .ve-ds-select-cor-borda.is-oculto {
+	display: none;
+}
+
+/* --- Alternador de tema (Claro/Escuro) --- */
+
+.visual-editor-vista .ve-ds-alternador-tema {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.visual-editor-vista .ve-ds-alternador-botao {
+	font-size: var(--font-ui-small);
+	font-weight: 600;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	padding: 5px 14px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.visual-editor-vista .ve-ds-alternador-botao:hover {
+	color: var(--text-normal);
+	border-color: var(--background-modifier-border-hover);
+}
+
+.visual-editor-vista .ve-ds-alternador-botao.is-ativo {
+	background: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.visual-editor-vista .ve-ds-alternador-nota {
+	flex: 1 1 auto;
+	min-width: 200px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	line-height: 1.4;
 }

@@ -28,8 +28,8 @@ Este plugin troca o paredão por controles:
 | `--animacao-ativa: true;` | um interruptor |
 
 Além de editar o que o arquivo já tem, a aba **Design System** (ver [seção própria](#a-aba-design-system))
-cataloga o que um projeto **deveria** ter — cor, tipografia, sombra, espaço — e cria os tokens que
-ainda faltam, direto do formulário.
+cataloga o que um projeto **deveria** ter — cor, tipografia, ícones, sombra, espaço, tema claro e
+escuro — e cria os tokens que ainda faltam, direto do formulário.
 
 ---
 
@@ -171,18 +171,20 @@ pronto para receber os tokens:
 Qualquer um dos três pergunta a pasta e o nome, cria o arquivo e já abre direto na aba Design
 System.
 
-### As oito seções
+### As dez seções
 
 | Seção | O que cataloga |
 |---|---|
-| **Cores principais** | As 5 cores que carregam a identidade do projeto, cada uma com uma escala de tons |
-| **Status** | 6 cores de um fluxo com etapas — do início ao concluído |
-| **Background, Texto e Cards** | 5 fundos, 5 cores de texto, 3 cartões (cada um com a própria borda liga/desliga) |
-| **Botões** | Cor por propósito (destrutivo, salvar, cancelar…) e uma forma reutilizável (raio) para todos de uma vez |
-| **Tipografia** | Família, tamanho, peso, entrelinhas e espaço entre letras — por papel (título, texto) |
-| **Sombra** | Cor, deslocamento e desfoque, com uma prévia ao lado |
-| **Espaço e Raio** | Medidas reutilizáveis: o quanto uma borda arredonda, o quanto um respiro separa |
-| **Alerts** | A cor da faixa lateral de cada estado (padrão, erro, sucesso, aviso) |
+| **1. Cores principais** | As 5 cores que carregam a identidade do projeto, cada uma com uma escala de tons |
+| **2. Status** | 6 cores de um fluxo com etapas — do início ao concluído |
+| **3. Background e Texto** | 5 fundos e 5 cores de texto |
+| **4. Cards** | 3 cartões, cada um escolhendo um **grupo de forma** (raio + borda + sombra) |
+| **5. Botões** | Cor por propósito (destrutivo, salvar, cancelar…) e uma forma reutilizável (raio + borda com cor escolhível) |
+| **6. Ícones** | 10 papéis (buscar, salvar, editar…) escolhidos por busca no pacote Lucide, com grupos de exibição reutilizáveis |
+| **7. Tipografia** | Família, tamanho, peso, entrelinhas e espaço entre letras — 6 papéis prontos |
+| **8. Sombra** | Cor, deslocamento e desfoque, com uma prévia ao lado |
+| **9. Espaço e Raio** | Medidas de reserva: 3 raios genéricos e 2 espaçamentos, cada um com slider e prévia |
+| **10. Alerts** | A cor da faixa lateral de cada estado (padrão, erro, sucesso, aviso) |
 
 Um papel sem token ainda no arquivo aparece **"de reserva"** (contorno tracejado): preencher o valor
 declara a variável na hora — não precisa criar o token primeiro para depois usar o catálogo.
@@ -195,17 +197,56 @@ matiz e saturação, variando só a luminosidade — então digitar `#5b5bd6` j�
 sem precisar escolher cinco hex à mão.
 
 Clicando num dos 4 tons calculados (não no do meio, que é a própria cor base), abre uma janelinha
-com dois sliders — **saturação** e **luminosidade** — para ajustar aquele tom especificamente. O
-ajuste é relativo ao tom calculado, e fica salvo como tokens extras no próprio arquivo (ex.:
-`--principal-1-tom0-sat`, `--principal-1-tom0-lum`): trocar a cor principal depois recalcula a
-escala toda mantendo os ajustes relativos que você já fez.
+com dois sliders — **saturação** e **luminosidade** — para ajustar aquele tom especificamente, mais
+um botão para **copiar o hex** resultante e reusar em outro lugar do sistema. O ajuste é relativo ao
+tom calculado, e fica salvo como tokens extras no próprio arquivo (ex.: `--principal-1-tom0-sat`,
+`--principal-1-tom0-lum`): trocar a cor principal depois recalcula a escala toda mantendo os
+ajustes relativos que você já fez.
 
-### O toggle de borda
+### Cards: grupos de forma
 
-Alguns papéis (Cards, a forma dos Botões) têm um interruptor de borda ao lado do valor de cor. Ele
-grava `1` ou `0` — sem unidade — num token próprio (`--card-1-borda`), pensado para ser usado como
-`calc(var(--card-1-borda, 0) * 1px)` na regra que consome o token: ligado vira `1px` de borda,
-desligado vira `0`.
+Em vez de um raio e uma borda únicos para os três cartões, a seção Cards tem **grupos de forma**
+(Forma A, B, C) — cada um com o próprio raio, borda e sombra — e cada card escolhe qual grupo usar.
+Assim um card pode ter sombra e borda enquanto outro não tem nenhuma das duas, sem duplicar a
+definição inteira: mudar o raio da Forma A muda todos os cards que a usam, de uma vez.
+
+A mesma lógica vale para a **forma dos Botões**: escolher a forma primeiro (antes da cor) faz os
+cartões de cor abaixo já nascerem mostrando o raio escolhido.
+
+### O toggle de borda, e a cor da borda
+
+Botões e Cards têm um interruptor de borda ao lado do raio. Ligado, grava `1` — desligado, `0` — num
+token próprio (`--btn-forma-borda`, `--card-forma-a-borda`), pensado para `calc(var(--x-borda, 0) *
+1px)` na regra que consome o token.
+
+Com a borda ligada, um seletor de cor aparece ao lado: **"cor do texto"** (o padrão, sem token
+próprio) ou qualquer token de cor já declarado no catálogo — Backgrounds, Cores principais, Status…
+Escolher um papel grava `var(--esse-token)`, não o hex: a borda continua acompanhando aquele papel
+se a cor dele mudar depois.
+
+### Ícones
+
+10 papéis prontos (Buscar, Adicionar, Salvar, Editar, Excluir, Fechar, Voltar, Avançar, Menu,
+Configurações), cada um com um ícone Lucide sugerido. Clicar no nome do ícone abre uma busca — o
+mesmo motor de busca por ícone que os outros plugins deste cofre usam — e escolher grava o NOME do
+ícone como token (`--icone-salvar: "save"`), não o SVG: é você quem desenha o ícone no código,
+usando esse nome.
+
+Como em Cards, há **grupos de exibição** reutilizáveis — Sozinho, Com fundo circular, Com fundo
+quadrado — e cada papel de ícone escolhe um. Trocar o grupo muda como TODOS os ícones daquele grupo
+aparecem, de uma vez.
+
+### Modo Claro / Escuro
+
+Um interruptor no topo da aba alterna entre editar o tema **Claro** e o **Escuro**. No modo escuro,
+os valores que você grava vão para dentro de um bloco `.dark { }` no próprio arquivo — o padrão
+Tailwind/shadcn, onde essa classe na tag `<html>` troca os tokens sozinha, sem precisar duplicar CSS
+em outro lugar do projeto.
+
+O bloco `.dark` só é criado no arquivo quando você de fato ajusta uma cor no modo escuro pela
+primeira vez — nunca preventivamente. Um papel sem valor próprio no escuro aparece "de reserva"
+mesmo já preenchido no claro: os dois modos são independentes, preencher um não obriga a preencher
+o outro.
 
 ### O que ainda não tem uma seção
 

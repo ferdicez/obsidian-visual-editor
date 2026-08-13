@@ -219,6 +219,94 @@ export function declararVariavel(
 }
 
 /**
+ * Acha o bloco `.dark` de topo (a casa do modo escuro), sem criar nada — mesma disciplina de
+ * `acharRoot`: só profundidade 0 conta, um `.dark` aninhado dentro de `@media` não vale.
+ */
+function acharDark(texto: string): { posicao: number; indentacao: string; casa: string } | null {
+	let profundidade = 0;
+	let i = 0;
+	let inicioTrecho = 0;
+
+	while (i < texto.length) {
+		const c = texto[i];
+
+		if (c === "/" && texto[i + 1] === "*") {
+			const fim = texto.indexOf("*/", i + 2);
+			i = fim === -1 ? texto.length : fim + 2;
+			inicioTrecho = i;
+			continue;
+		}
+
+		if (c === '"' || c === "'") {
+			const aspa = c;
+			i++;
+			while (i < texto.length) {
+				if (texto[i] === "\\") { i += 2; continue; }
+				if (texto[i] === aspa) { i++; break; }
+				i++;
+			}
+			continue;
+		}
+
+		if (c === "{") {
+			const seletor = texto.slice(inicioTrecho, i).trim().replace(/\s+/g, " ");
+			if (profundidade === 0 && seletor.toLowerCase() === ".dark") {
+				return { posicao: i + 1, indentacao: indentacaoDe(texto, i + 1), casa: seletor };
+			}
+			profundidade++;
+			i++;
+			inicioTrecho = i;
+			continue;
+		}
+
+		if (c === "}") {
+			profundidade--;
+			i++;
+			inicioTrecho = i;
+			continue;
+		}
+
+		i++;
+	}
+
+	return null;
+}
+
+/**
+ * Declara uma variável na casa do MODO ESCURO (`.dark`), criando o bloco no fim do arquivo se ele
+ * ainda não existir. É a única operação do plugin que pode criar um bloco inteiro, não só uma
+ * declaração dentro de um já existente — mas o bloco só nasce quando ela de fato ajusta uma cor no
+ * modo escuro pela primeira vez, nunca preventivamente.
+ *
+ * Pedido dela: interruptor Claro/Escuro no topo da aba Design System, com os valores escuros
+ * gravados dentro de `.dark { ... }` — o padrão Tailwind/shadcn, onde essa classe na tag `<html>`
+ * troca os tokens sozinha, sem precisar duplicar CSS em outro lugar do projeto.
+ */
+export function declararVariavelDark(texto: string, nome: string, valor: string, declaradasDark: string[]): ResultadoExtracao {
+	if (!nomeValido(nome)) {
+		return { ok: false, texto, erro: "O nome precisa começar com -- e conter só letras, números e hífens." };
+	}
+	if (declaradasDark.includes(nome)) {
+		return { ok: false, texto, erro: `A variável ${nome} já existe em .dark neste arquivo.` };
+	}
+
+	const dark = acharDark(texto);
+	if (dark) {
+		const novo = texto.slice(0, dark.posicao) + `\n${dark.indentacao}${nome}: ${valor};` + texto.slice(dark.posicao);
+		return { ok: true, texto: novo, casa: dark.casa };
+	}
+
+	// Sem bloco .dark ainda: cria um novo no fim do arquivo, com a MESMA indentação que o :root já
+	// usa (se houver um) — para o bloco novo não destoar visualmente do resto do arquivo.
+	const root = acharRoot(texto);
+	const indentacao = root?.indentacao ?? "\t";
+	const quebra = texto.endsWith("\n") ? "" : "\n";
+	const novo = `${texto}${quebra}\n.dark {\n${indentacao}${nome}: ${valor};\n}\n`;
+
+	return { ok: true, texto: novo, casa: ".dark" };
+}
+
+/**
  * Liga uma propriedade a uma variável que já existe: o valor vira `var(--nome)`.
  *
  * Não acrescenta linha — é uma troca de valor comum, e por isso não precisa das proteções acima.

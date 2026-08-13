@@ -1,7 +1,7 @@
 {
 	"id": "visual-editor",
 	"name": "Visual Editor",
-	"version": "0.14.0",
+	"version": "0.15.0",
 	"minAppVersion": "1.5.0",
 	"description": "Edita o visual dos seus projetos por interface: abre .css, .json e .txt como controles (cor, medida, fonte) em vez de código, salvando no arquivo real.",
 	"author": "ferdicez",
