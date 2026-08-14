@@ -199,9 +199,7 @@ function desenharCartaoCorSimples(
 	if (raio) bloco.style.borderRadius = raio;
 
 	const linha = cartao.createDiv({ cls: "ve-ds-campo-valor" });
-	const seletor = linha.createEl("input", {
-		attr: { type: "color", value: valorParaSeletor(campo?.valor) },
-	});
+	const seletor = criarSeletorCor(linha, campo?.valor);
 	const entradaHex = linha.createEl("input", {
 		cls: "ve-ds-entrada-hex-inline",
 		attr: { type: "text", spellcheck: "false", value: campo?.valor ?? "", placeholder: campo ? "" : "— vazio —" },
@@ -212,6 +210,7 @@ function desenharCartaoCorSimples(
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
 		bloco.style.background = seletor.value;
+		seletor.parentElement!.style.background = seletor.value;
 	});
 	seletor.addEventListener("change", () => gravar(seletor.value));
 
@@ -238,6 +237,19 @@ function desenharCartaoCorSimples(
 function valorParaSeletor(valor: string | undefined): string {
 	if (valor && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(valor.trim())) return valor.trim();
 	return "#8a8da3";
+}
+
+/**
+ * O pequeno seletor de cor dos cartões: um invólucro `.ve-ds-swatch` (que mostra a cor, a borda e o
+ * arredondamento de verdade) com o `<input type="color">` invisível por cima, ocupando os 100% dele —
+ * mesmo padrão do `.ve-swatch` principal do plugin (ver `styles.css`). Estilizar o input nativo
+ * direto não é confiável: o pseudo-elemento `::-webkit-color-swatch` às vezes desenha um traço fino
+ * por dentro em vez de preencher o quadrado, que foi o "ficou quadrado" que ela reportou.
+ */
+function criarSeletorCor(pai: HTMLElement, valorInicial: string | undefined): HTMLInputElement {
+	const caixa = pai.createDiv({ cls: "ve-ds-swatch" });
+	caixa.style.background = valorInicial ?? "var(--background-primary)";
+	return caixa.createEl("input", { attr: { type: "color", value: valorParaSeletor(valorInicial) } });
 }
 
 function desenharSecaoCoresPrincipais(
@@ -578,7 +590,8 @@ function desenharCartaoCorTexto(pai: HTMLElement, papel: Papel, campo: Campo | n
 	bloco.style.color = campo?.valor ?? "var(--text-normal)";
 
 	const linha = cartao.createDiv({ cls: "ve-ds-campo-valor" });
-	const seletor = linha.createEl("input", { attr: { type: "color", value: valorParaSeletor(campo?.valor) } });
+	const seletor = criarSeletorCor(linha, campo?.valor);
+	seletor.parentElement!.style.background = campo?.valor ?? "var(--text-normal)";
 	const entradaHex = linha.createEl("input", {
 		cls: "ve-ds-entrada-hex-inline",
 		attr: { type: "text", spellcheck: "false", value: campo?.valor ?? "", placeholder: campo ? "" : "— vazio —" },
@@ -587,6 +600,7 @@ function desenharCartaoCorTexto(pai: HTMLElement, papel: Papel, campo: Campo | n
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
 		bloco.style.color = seletor.value;
+		seletor.parentElement!.style.background = seletor.value;
 	});
 	seletor.addEventListener("change", () => gravar(seletor.value));
 	const confirmarTexto = () => {
@@ -778,7 +792,7 @@ function desenharCartaoCard(
 	}
 
 	const linha = cartao.createDiv({ cls: "ve-ds-campo-valor" });
-	const seletor = linha.createEl("input", { attr: { type: "color", value: valorParaSeletor(campo?.valor) } });
+	const seletor = criarSeletorCor(linha, campo?.valor);
 	const entradaHex = linha.createEl("input", {
 		cls: "ve-ds-entrada-hex-inline",
 		attr: { type: "text", spellcheck: "false", value: campo?.valor ?? "", placeholder: campo ? "" : "— vazio —" },
@@ -786,6 +800,7 @@ function desenharCartaoCard(
 
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
+		seletor.parentElement!.style.background = seletor.value;
 	});
 	seletor.addEventListener("change", () => gravar(seletor.value));
 	const confirmarTexto = () => {
@@ -836,14 +851,6 @@ const PAPEIS_BOTAO: PapelBotao[] = [
 	{ tokenBase: "--btn-3", rotulo: "Botão 3" },
 ];
 
-/** Os raios oferecidos dentro de um grupo de forma de botão. */
-const RAIOS_BOTAO = [
-	{ raio: "0px", rotulo: "Quadrado" },
-	{ raio: "8px", rotulo: "Arred. 1" },
-	{ raio: "16px", rotulo: "Arred. 2" },
-	{ raio: "999px", rotulo: "Pílula" },
-];
-
 /**
  * Grupos de forma de botão — raio + borda + sombra, do mesmo jeito que `GRUPOS_FORMA_CARD` já
  * funciona para Cards. Pedido dela: *"a seleção de arredondamento dos botões deve ser múltipla
@@ -880,7 +887,13 @@ function desenharSecaoBotoes(raiz: HTMLElement, porToken: Map<string, Campo>, ac
 	});
 }
 
-/** Um grupo de forma de botão: raio por preset, borda liga/desliga (com cor), sombra opcional. */
+/**
+ * Um grupo de forma de botão: raio, borda liga/desliga (com cor), sombra opcional — mesmo trio que
+ * `desenharGrupoFormaCard` já usa para Cards. O raio era 4 presets clicáveis (Quadrado/Arred.1/
+ * Arred.2/Pílula); ela apontou a diferença: *"os botões eu clico em cima da opção, os cards eu
+ * escolho exatamente o px do radius"* — ela queria o MESMO controle dos Cards (slider + número
+ * exato), não uma escolha entre 4 valores fixos. Trocado para `desenharSliderMedida`.
+ */
 function desenharGrupoFormaBotao(
 	pai: HTMLElement,
 	grupo: GrupoForma,
@@ -891,31 +904,18 @@ function desenharGrupoFormaBotao(
 	const campoRaio = porToken.get(`${baseToken}-raio`) ?? null;
 	const campoBorda = porToken.get(`${baseToken}-borda`) ?? null;
 	const campoSombra = porToken.get(`${baseToken}-sombra`) ?? null;
-	const raioAtual = campoRaio?.valor ?? null;
 
 	const cartao = pai.createDiv({ cls: "ve-ds-amostra ve-ds-amostra-forma-card" });
 	cartao.createDiv({ cls: "ve-ds-amostra-rotulo", text: grupo.rotulo });
 
-	const gradeRaio = cartao.createDiv({ cls: "ve-ds-grade-raio-botao" });
-	const botoesRaio: HTMLButtonElement[] = [];
-	let previewSombra: HTMLElement | null = null;
-	for (const opcao of RAIOS_BOTAO) {
-		const preview = gradeRaio.createEl("button", {
-			cls: "ve-ds-preview-botao",
-			attr: { type: "button" },
-			text: opcao.rotulo,
-		});
-		preview.style.borderRadius = opcao.raio;
-		preview.toggleClass("is-ativa", raioAtual === opcao.raio);
-		botoesRaio.push(preview);
+	const preview = cartao.createDiv({ cls: "ve-ds-preview-medida" });
+	preview.style.borderRadius = campoRaio?.valor ?? "0px";
+	aplicarSombraPreview(preview, campoSombra?.valor);
 
-		preview.addEventListener("click", () => {
-			botoesRaio.forEach((b) => b.removeClass("is-ativa"));
-			preview.addClass("is-ativa");
-			if (campoRaio) acoes.aplicarToken(campoRaio.chave, opcao.raio);
-			else acoes.criarToken(`${baseToken}-raio`, opcao.raio);
-		});
-	}
+	const linhaRaio = cartao.createDiv({ cls: "ve-ds-campo-valor" });
+	desenharSliderMedida(linhaRaio, `${baseToken}-raio`, campoRaio, acoes, { min: 0, max: 40 }, (valor) => {
+		preview.style.borderRadius = valor;
+	});
 
 	const linhaBorda = cartao.createDiv({ cls: "ve-ds-campo-valor ve-ds-campo-valor-coluna" });
 	desenharBordaToggle(linhaBorda, `${baseToken}-borda`, campoBorda, acoes, {
@@ -925,7 +925,7 @@ function desenharGrupoFormaBotao(
 
 	const linhaSombra = cartao.createDiv({ cls: "ve-ds-campo-valor" });
 	desenharSeletorSombra(linhaSombra, `${baseToken}-sombra`, campoSombra, acoes, (valor) => {
-		if (previewSombra) aplicarSombraPreview(previewSombra, valor);
+		aplicarSombraPreview(preview, valor);
 	});
 }
 
@@ -961,9 +961,7 @@ function desenharCartaoBotao(
 	aplicarForma(grupoAtual);
 
 	const linha = cartao.createDiv({ cls: "ve-ds-campo-valor" });
-	const seletor = linha.createEl("input", {
-		attr: { type: "color", value: valorParaSeletor(campo?.valor) },
-	});
+	const seletor = criarSeletorCor(linha, campo?.valor);
 	const entradaHex = linha.createEl("input", {
 		cls: "ve-ds-entrada-hex-inline",
 		attr: { type: "text", spellcheck: "false", value: campo?.valor ?? "", placeholder: campo ? "" : "— vazio —" },
@@ -972,6 +970,7 @@ function desenharCartaoBotao(
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
 		bloco.style.background = seletor.value;
+		seletor.parentElement!.style.background = seletor.value;
 	});
 	seletor.addEventListener("change", () => gravar(seletor.value));
 
@@ -1069,13 +1068,20 @@ function desenharSecaoIcones(raiz: HTMLElement, porToken: Map<string, Campo>, ac
 		}
 
 		corpo.createDiv({ cls: "ve-ds-rotulo-grupo", text: "Ícones" });
-		const gradeIcones = corpo.createDiv({ cls: "ve-ds-grade ve-ds-grade-amostras" });
+		const gradeIcones = corpo.createDiv({ cls: "ve-ds-grade ve-ds-grade-icones" });
 		for (const papel of PAPEIS_ICONE) {
 			desenharCartaoIcone(gradeIcones, papel, porToken, acoes);
 		}
 	});
 }
 
+/**
+ * Um grupo de exibição de ícone: "Sozinho", "Com fundo circular", "Com fundo quadrado" — cada um com
+ * a PRÓPRIA cor. Nos dois grupos com fundo, a cor pinta a bolha atrás do ícone (que fica em
+ * `currentColor`, branco/preto por cima); em "Sozinho", que não tem bolha nenhuma, a mesma cor pinta
+ * o ÍCONE em si — pedido dela: *"o ícone sozinho vai ganhar na linha dele a cor do fundo dos
+ * outros"*. É por isso que os três grupos têm campo de cor agora (antes só os dois com fundo tinham).
+ */
 function desenharGrupoExibicaoIcone(
 	pai: HTMLElement,
 	grupo: GrupoIcone,
@@ -1090,37 +1096,41 @@ function desenharGrupoExibicaoIcone(
 
 	const preview = cartao.createDiv({ cls: "ve-ds-preview-icone" });
 	const bolha = preview.createDiv({ cls: "ve-ds-icone-bolha" });
-	if (grupo.raioFundo) {
-		bolha.style.borderRadius = grupo.raioFundo;
-		bolha.style.background = campoCor?.valor ?? "var(--background-modifier-border)";
-	} else {
-		bolha.addClass("is-sem-fundo");
-	}
+	const aplicarCor = (valor: string) => {
+		if (grupo.raioFundo) {
+			bolha.style.borderRadius = grupo.raioFundo;
+			bolha.style.background = valor;
+			bolha.style.color = "";
+		} else {
+			bolha.addClass("is-sem-fundo");
+			bolha.style.color = valor;
+		}
+	};
+	aplicarCor(campoCor?.valor ?? (grupo.raioFundo ? "var(--background-modifier-border)" : "var(--text-normal)"));
 	setIconeLucide(bolha, "star");
 
-	if (grupo.raioFundo) {
-		const linha = cartao.createDiv({ cls: "ve-ds-campo-valor" });
-		const seletor = linha.createEl("input", { attr: { type: "color", value: valorParaSeletor(campoCor?.valor) } });
-		const entradaHex = linha.createEl("input", {
-			cls: "ve-ds-entrada-hex-inline",
-			attr: { type: "text", spellcheck: "false", value: campoCor?.valor ?? "", placeholder: campoCor ? "" : "— vazio —" },
-		});
-		seletor.addEventListener("input", () => {
-			entradaHex.value = seletor.value;
-			bolha.style.background = seletor.value;
-		});
-		seletor.addEventListener("change", () => gravar(seletor.value));
-		const confirmarTexto = () => {
-			const valor = entradaHex.value.trim();
-			if (!valor) return;
-			bolha.style.background = valor;
-			gravar(valor);
-		};
-		entradaHex.addEventListener("blur", confirmarTexto);
-		entradaHex.addEventListener("keydown", (evento) => {
-			if (evento.key === "Enter") entradaHex.blur();
-		});
-	}
+	const linha = cartao.createDiv({ cls: "ve-ds-campo-valor" });
+	const seletor = criarSeletorCor(linha, campoCor?.valor);
+	const entradaHex = linha.createEl("input", {
+		cls: "ve-ds-entrada-hex-inline",
+		attr: { type: "text", spellcheck: "false", value: campoCor?.valor ?? "", placeholder: campoCor ? "" : "— vazio —" },
+	});
+	seletor.addEventListener("input", () => {
+		entradaHex.value = seletor.value;
+		aplicarCor(seletor.value);
+		seletor.parentElement!.style.background = seletor.value;
+	});
+	seletor.addEventListener("change", () => gravar(seletor.value));
+	const confirmarTexto = () => {
+		const valor = entradaHex.value.trim();
+		if (!valor) return;
+		aplicarCor(valor);
+		gravar(valor);
+	};
+	entradaHex.addEventListener("blur", confirmarTexto);
+	entradaHex.addEventListener("keydown", (evento) => {
+		if (evento.key === "Enter") entradaHex.blur();
+	});
 
 	function gravar(valor: string): void {
 		if (campoCor) acoes.aplicarToken(campoCor.chave, valor);
@@ -1136,14 +1146,35 @@ function desenharCartaoIcone(
 ): void {
 	const campoIcone = porToken.get(papel.tokenBase) ?? null;
 	const campoGrupo = porToken.get(`${papel.tokenBase}-grupo`) ?? null;
+	const campoNome = porToken.get(`${papel.tokenBase}-nome`) ?? null;
 	const nomeIcone = campoIcone?.valor?.replace(/^"|"$/g, "") || papel.iconePadrao;
 	const grupoAtual = campoGrupo?.valor?.replace(/^"|"$/g, "") || GRUPOS_EXIBICAO_ICONE[0].id;
+	const rotuloAtual = campoNome?.valor?.replace(/^"|"$/g, "") || papel.rotulo;
 
 	const cartao = pai.createDiv({ cls: "ve-ds-amostra" });
 	if (!campoIcone) cartao.addClass("is-reserva");
 
 	const cabecalho = cartao.createDiv({ cls: "ve-ds-amostra-rotulo" });
-	cabecalho.createSpan({ text: papel.rotulo });
+	// Editável no clique — pedido dela: "poder renomear os cards dos ícones". O nome do papel
+	// (papel.rotulo, ex. "Buscar") continua sendo o padrão exibido; renomear grava um token à parte
+	// (`--icone-buscar-nome`), então o catálogo nunca perde o rótulo original se ela limpar o campo.
+	const entradaRotulo = cabecalho.createEl("input", {
+		cls: "ve-ds-amostra-rotulo-entrada",
+		attr: { type: "text", spellcheck: "false", value: rotuloAtual },
+	});
+	const confirmarRotulo = () => {
+		const valor = entradaRotulo.value.trim();
+		if (!valor) {
+			entradaRotulo.value = rotuloAtual;
+			return;
+		}
+		if (campoNome) acoes.aplicarToken(campoNome.chave, `"${valor}"`);
+		else acoes.criarToken(`${papel.tokenBase}-nome`, `"${valor}"`);
+	};
+	entradaRotulo.addEventListener("blur", confirmarRotulo);
+	entradaRotulo.addEventListener("keydown", (evento) => {
+		if (evento.key === "Enter") entradaRotulo.blur();
+	});
 	if (!campoIcone) cabecalho.createSpan({ cls: "ve-ds-badge-reserva", text: "reserva" });
 
 	const preview = cartao.createDiv({ cls: "ve-ds-preview-icone" });
@@ -1153,7 +1184,13 @@ function desenharCartaoIcone(
 		const grupo = GRUPOS_EXIBICAO_ICONE.find((g) => g.id === idGrupo) ?? GRUPOS_EXIBICAO_ICONE[0];
 		bolha.toggleClass("is-sem-fundo", !grupo.raioFundo);
 		bolha.style.borderRadius = grupo.raioFundo || "";
-		bolha.style.background = grupo.raioFundo ? `var(--icone-forma-${grupo.id}-cor, var(--background-modifier-border))` : "";
+		if (grupo.raioFundo) {
+			bolha.style.background = `var(--icone-forma-${grupo.id}-cor, var(--background-modifier-border))`;
+			bolha.style.color = "";
+		} else {
+			bolha.style.background = "";
+			bolha.style.color = `var(--icone-forma-${grupo.id}-cor, var(--text-normal))`;
+		}
 	};
 	aplicarGrupo(grupoAtual);
 	setIconeLucide(bolha, nomeIcone);
@@ -1321,11 +1358,17 @@ function desenharSubCampoTipografia(
 	});
 	if (unidade) sub.createSpan({ cls: "ve-ds-tipo-unidade", text: unidade });
 
+	// "input" só atualiza a prévia a cada tecla — ela reclamou que digitar o tamanho não mudava a
+	// amostra na hora; antes só o "blur" chamava `aoMudar`, então nada se mexia até ela clicar fora.
+	entrada.addEventListener("input", () => {
+		const numero = entrada.value.trim();
+		if (numero) aoMudar(numero);
+	});
+
 	const confirmar = () => {
 		const numero = entrada.value.trim();
 		if (!numero) return;
 		const valorGravado = unidade ? `${numero}${unidade}` : numero;
-		aoMudar(numero);
 		if (campo) acoes.aplicarToken(campo.chave, valorGravado);
 		else acoes.criarToken(tokenBase, valorGravado);
 	};
@@ -1537,7 +1580,9 @@ function desenharCartaoSombra(
 	};
 
 	const linha = cartao.createDiv({ cls: "ve-ds-camada-sombra" });
-	const entradaCor = linha.createEl("input", {
+	const caixaCor = linha.createDiv({ cls: "ve-ds-sombra-swatch" });
+	caixaCor.style.background = campoCor?.valor ?? p.cor;
+	const entradaCor = caixaCor.createEl("input", {
 		cls: "ve-ds-sombra-cor",
 		attr: { type: "color", value: valorParaSeletor(campoCor?.valor ?? p.cor) },
 	});
@@ -1562,7 +1607,10 @@ function desenharCartaoSombra(
 		},
 	});
 
-	entradaCor.addEventListener("input", atualizarPreview);
+	entradaCor.addEventListener("input", () => {
+		caixaCor.style.background = entradaCor.value;
+		atualizarPreview();
+	});
 	entradaCor.addEventListener("change", () => {
 		gravar(campoCor, `${papel.tokenBase}-cor`, entradaCor.value);
 		atualizarPreview();
@@ -1618,7 +1666,7 @@ function desenharSecaoEspacoRaio(raiz: HTMLElement, porToken: Map<string, Campo>
 	const acordeao = criarAcordeao(raiz, {
 		chave: "design-system|espaco-raio",
 		titulo: "9. Espaço e Raio",
-		descricao: "Medidas reutilizáveis: o quanto uma borda arredonda, o quanto um respiro separa.",
+		descricao: "Reserva para elementos que ainda não têm seção própria (inputs, modais, imagens...) — Cards e Botões já têm o raio deles dentro dos respectivos Grupos de forma, não usam este aqui.",
 		resumo: `${PAPEIS_ESPACO_RAIO.length} papéis`,
 	});
 
@@ -1703,7 +1751,7 @@ function desenharCartaoAlerta(pai: HTMLElement, papel: PapelAlerta, campo: Campo
 	corpo.createSpan({ cls: "ve-ds-amostra-alerta-msg", text: papel.mensagem });
 
 	const linha = corpo.createDiv({ cls: "ve-ds-campo-valor" });
-	const seletor = linha.createEl("input", { attr: { type: "color", value: valorParaSeletor(campo?.valor) } });
+	const seletor = criarSeletorCor(linha, campo?.valor);
 	const entradaHex = linha.createEl("input", {
 		cls: "ve-ds-entrada-hex-inline",
 		attr: { type: "text", spellcheck: "false", value: campo?.valor ?? "", placeholder: campo ? "" : "— vazio —" },
@@ -1712,6 +1760,7 @@ function desenharCartaoAlerta(pai: HTMLElement, papel: PapelAlerta, campo: Campo
 	seletor.addEventListener("input", () => {
 		entradaHex.value = seletor.value;
 		cartao.style.borderLeftColor = seletor.value;
+		seletor.parentElement!.style.background = seletor.value;
 	});
 	seletor.addEventListener("change", () => gravar(seletor.value));
 	const confirmarTexto = () => {

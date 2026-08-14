@@ -2132,11 +2132,39 @@
 	color: var(--text-normal);
 }
 
+/*
+	O nome dos cards de ícone é editável — pedido dela: "poder renomear os cards dos ícones". Sem
+	borda/fundo por padrão para continuar lendo como rótulo, não como campo de formulário; só ganha
+	contorno ao focar, que é quando ela de fato está editando.
+*/
+.visual-editor-vista .ve-ds-amostra-rotulo-entrada {
+	width: 100%;
+	background: none;
+	border: none;
+	padding: 1px 3px;
+	text-align: center;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	color: var(--text-normal);
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-ds-amostra-rotulo-entrada:hover {
+	background: var(--background-modifier-hover);
+}
+
+.visual-editor-vista .ve-ds-amostra-rotulo-entrada:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -1px;
+	background: var(--background-primary);
+}
+
 .visual-editor-vista .ve-ds-amostra.is-reserva .ve-ds-amostra-rotulo,
 .visual-editor-vista .ve-ds-amostra-card.is-reserva .ve-ds-amostra-rotulo,
 .visual-editor-vista .ve-ds-amostra-tipo.is-reserva .ve-ds-amostra-rotulo,
 .visual-editor-vista .ve-ds-amostra-sombra.is-reserva .ve-ds-amostra-rotulo,
-.visual-editor-vista .ve-ds-amostra-alerta.is-reserva .ve-ds-amostra-rotulo {
+.visual-editor-vista .ve-ds-amostra-alerta.is-reserva .ve-ds-amostra-rotulo,
+.visual-editor-vista .ve-ds-amostra.is-reserva .ve-ds-amostra-rotulo-entrada {
 	color: var(--text-muted);
 }
 
@@ -2164,20 +2192,42 @@
 }
 
 /*
-	O <input type="color"> nativo tem padding interno próprio do sistema — sem estilizar o
-	pseudo-elemento do swatch, mesmo uma caixa quadrada (18x18) desenha um traço fino por dentro em
-	vez de preencher o quadrado com a cor. As regras ::-webkit-color-swatch-* fazem o retângulo de
-	cor ocupar a caixa inteira, do mesmo jeito que o mockup HTML original já fazia.
+	Mesmo padrão do `.ve-swatch` principal do plugin (ver comentário em torno da linha 560): o
+	<input type="color"> nativo desenha um traço fino por dentro mesmo com o pseudo-elemento
+	::-webkit-color-swatch estilizado — não é confiável sozinho. Aqui o input fica INVISÍVEL,
+	dentro de um invólucro `.ve-ds-swatch` que é quem de fato mostra a cor e a borda; o clique
+	continua indo para o input de verdade (position: relative + inset: 0), não um `.click()`
+	sintético, que o Electron ignora em silêncio.
 */
-.visual-editor-vista .ve-ds-campo-valor input[type="color"] {
+.visual-editor-vista .ve-ds-swatch {
+	position: relative;
 	width: 18px;
 	height: 18px;
+	flex: none;
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+	cursor: pointer;
+}
+
+.visual-editor-vista .ve-ds-swatch:hover {
+	border-color: var(--interactive-accent);
+}
+
+.visual-editor-vista .ve-ds-campo-valor input[type="color"] {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
 	padding: 0;
 	border: none;
-	border-radius: var(--radius-s);
+	opacity: 0;
 	cursor: pointer;
 	flex: none;
 	background: none;
+	appearance: none;
+	-webkit-appearance: none;
 }
 
 .visual-editor-vista .ve-ds-campo-valor input[type="color"]::-webkit-color-swatch-wrapper {
@@ -2294,32 +2344,6 @@
 
 .visual-editor-vista .ve-ds-grade-forma {
 	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-}
-
-.visual-editor-vista .ve-ds-preview-botao {
-	width: 100%;
-	padding: 9px 12px;
-	font-size: var(--font-ui-smaller);
-	font-weight: 600;
-	border: 1px solid var(--background-modifier-border);
-	background: var(--background-primary);
-	color: var(--text-muted);
-	cursor: pointer;
-	opacity: 0.7;
-}
-
-.visual-editor-vista .ve-ds-preview-botao.is-ativa {
-	opacity: 1;
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-color: var(--interactive-accent);
-}
-
-/* Os quatro presets de raio dentro de UM grupo de forma de botão — mais compactos que a grade geral. */
-.visual-editor-vista .ve-ds-grade-raio-botao {
-	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 6px;
 }
 
 /* --- Tipografia --- */
@@ -2549,25 +2573,36 @@
 	gap: 6px;
 }
 
-.visual-editor-vista .ve-ds-sombra-cor {
+/* Mesmo padrão de `.ve-ds-swatch`: o input fica invisível dentro do invólucro `.ve-ds-sombra-swatch`. */
+.visual-editor-vista .ve-ds-sombra-swatch {
+	position: relative;
 	width: 18px;
 	height: 18px;
+	flex: none;
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+	cursor: pointer;
+}
+
+.visual-editor-vista .ve-ds-sombra-swatch:hover {
+	border-color: var(--interactive-accent);
+}
+
+.visual-editor-vista .ve-ds-sombra-cor {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
 	padding: 0;
 	border: none;
-	border-radius: var(--radius-s);
+	opacity: 0;
 	cursor: pointer;
 	flex: none;
 	background: none;
-}
-
-.visual-editor-vista .ve-ds-sombra-cor::-webkit-color-swatch-wrapper {
-	padding: 0;
-	border-radius: var(--radius-s);
-}
-
-.visual-editor-vista .ve-ds-sombra-cor::-webkit-color-swatch {
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
+	appearance: none;
+	-webkit-appearance: none;
 }
 
 .visual-editor-vista .ve-ds-sombra-mini {
@@ -2740,25 +2775,30 @@
 
 /* --- Ícones --- */
 
+/* Cards de ícone são bem menores que os de cor — colunas mais estreitas evitam sobra de espaço vazio. */
+.visual-editor-vista .ve-ds-grade-icones {
+	grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+}
+
 .visual-editor-vista .ve-ds-preview-icone {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 10px 0;
+	padding: 4px 0;
 }
 
 .visual-editor-vista .ve-ds-icone-bolha {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 40px;
-	height: 40px;
+	width: 30px;
+	height: 30px;
 	color: var(--text-normal);
 }
 
 .visual-editor-vista .ve-ds-icone-bolha svg {
-	width: 18px;
-	height: 18px;
+	width: 15px;
+	height: 15px;
 }
 
 .visual-editor-vista .ve-ds-icone-bolha.is-sem-fundo {
