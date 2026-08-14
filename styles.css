@@ -325,7 +325,7 @@
 		como ela descreveu. Largura fixa + `justify-content: start` em cada `.ve-controle-*` alinha
 		o início de todos, sempre.
 	*/
-	grid-template-columns: minmax(9em, 15em) 16em auto;
+	grid-template-columns: minmax(9em, 15em) 17em auto;
 	gap: 1em;
 	align-items: center;
 	padding: 0.65em 0;
@@ -393,7 +393,6 @@
 
 .visual-editor-vista .ve-campo-uso {
 	font-size: var(--font-ui-smaller);
-	font-family: var(--font-monospace);
 	color: var(--text-muted);
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -524,7 +523,6 @@
 /* Cor */
 
 .visual-editor-vista .ve-controle-cor .ve-entrada-cor {
-	font-family: var(--font-monospace);
 	max-width: 14em;
 }
 
@@ -663,7 +661,6 @@
 	flex: 0 0 auto;
 	width: 4.5em;
 	text-align: right;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 }
 
@@ -671,7 +668,6 @@
 	flex: 0 0 auto;
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
-	font-family: var(--font-monospace);
 	min-width: 1.8em;
 }
 
@@ -691,7 +687,6 @@
 	flex: 0 0 auto;
 	width: 4.5em;
 	text-align: center;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 }
 
@@ -710,7 +705,6 @@
 .visual-editor-vista .ve-borda-cor {
 	flex: 1 1 6em;
 	min-width: 4em;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 }
 
@@ -751,7 +745,6 @@
 	width: 3.8em;
 	min-width: 0;
 	text-align: center;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	padding: 0.2em 0.3em;
 }
@@ -853,7 +846,6 @@
 .visual-editor-vista .ve-sombra-cor-texto {
 	flex: 1 1 7em;
 	min-width: 5em;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	/* A mesma altura das caixinhas com sigla, para a base bater sem depender do padding do tema. */
 	padding: 0.2em 0.4em;
@@ -907,7 +899,6 @@
 .visual-editor-vista .ve-sombra-numero {
 	width: 100%;
 	text-align: center;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	padding: 0.2em 0.3em;
 }
@@ -933,7 +924,6 @@
 }
 
 .visual-editor-vista .ve-sombra-crua {
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
 	overflow-wrap: anywhere;
@@ -1050,13 +1040,17 @@
 	font-family: var(--font-interface);
 	font-size: var(--font-ui-smaller);
 	cursor: pointer;
-	width: 9em;
+	width: 13em;
 	max-width: 100%;
 }
 
-/* A ficha de cor é mais larga: o retângulo da amostra come espaço que o nome ainda precisa. */
+/*
+	A ficha de cor é mais larga: o retângulo da amostra (4.5em) come espaço que o nome ainda
+	precisa, e nomes reais chegam a `--color-link-start` — 13em sozinho não sobrava o suficiente e
+	cortava o nome no meio.
+*/
 .visual-editor-vista .ve-ficha-var.tem-cor {
-	width: 11em;
+	width: 17em;
 	padding-left: 0;
 }
 
@@ -1132,7 +1126,6 @@
 /* O campo do nome merece a largura toda: nomes de token são compridos. */
 .visual-editor-modal .setting-item input[type="text"] {
 	width: 100%;
-	font-family: var(--font-monospace);
 }
 
 /* --- Orientação ------------------------------------------------------------------------------ */
@@ -1314,7 +1307,6 @@
 .visual-editor-popover .ve-pop-nome {
 	flex: 1 1 auto;
 	min-width: 0;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-small);
 	color: var(--text-normal);
 	overflow-wrap: anywhere;
@@ -1382,7 +1374,6 @@
 	flex: 0 0 auto;
 	width: 4em;
 	text-align: right;
-	font-family: var(--font-monospace);
 }
 
 /* Onde mais este token é usado — responde "se eu mexer aqui, o que mais muda?". */
@@ -1400,7 +1391,6 @@
 
 .visual-editor-popover .ve-pop-uso {
 	font-size: var(--font-ui-smaller);
-	font-family: var(--font-monospace);
 	color: var(--text-muted);
 	padding: 0.1em 0;
 	overflow: hidden;
@@ -1547,7 +1537,6 @@
 .visual-editor-popover .ve-pop-tom-valor {
 	flex: 0 0 3.2em;
 	text-align: right;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-normal);
 }
@@ -1560,7 +1549,6 @@
 
 .visual-editor-popover .ve-pop-tom-copiar-botao {
 	width: 100%;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
@@ -1841,7 +1829,6 @@
 .visual-editor-explorador .ve-exp-ext {
 	flex: 0 0 auto;
 	font-size: var(--font-ui-smaller);
-	font-family: var(--font-monospace);
 	color: var(--text-faint);
 	opacity: 0.6;
 }
@@ -2148,7 +2135,6 @@
 
 .visual-editor-vista .ve-ds-entrada-hex {
 	width: 100%;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	text-align: center;
 	background: var(--background-primary);
@@ -2234,7 +2220,6 @@
 
 .visual-editor-vista .ve-ds-entrada-hex-inline {
 	width: 72px;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	text-align: center;
 	background: var(--background-primary);
@@ -2337,7 +2322,6 @@
 	font-size: var(--font-ui-smaller);
 	background: var(--background-primary);
 	color: var(--text-normal);
-	font-family: var(--font-monospace);
 }
 
 .visual-editor-vista .ve-ds-outra-fonte.is-oculto {
@@ -2459,7 +2443,6 @@
 .visual-editor-vista .ve-ds-sombra-mini {
 	width: 100%;
 	min-width: 0;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	text-align: center;
 	background: var(--background-primary);
@@ -2572,7 +2555,6 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
 	white-space: nowrap;
@@ -2603,7 +2585,6 @@
 	flex: 1 1 auto;
 	width: 100%;
 	min-width: 0;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border);
@@ -2715,7 +2696,6 @@
 .visual-editor-vista .ve-sc-entrada-numero {
 	width: 100%;
 	text-align: center;
-	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border);
