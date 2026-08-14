@@ -2029,14 +2029,31 @@
 	border-color: var(--background-modifier-border-hover);
 }
 
-/* O tom do meio É a cor base: não abre popover de ajuste, então não parece clicável. */
+/* O tom do meio É a cor base: não abre popover de ajuste, mas continua clicável (abre o seletor nativo). */
 .visual-editor-vista .ve-ds-tom.is-base {
-	cursor: default;
+	cursor: pointer;
 	border-color: var(--background-modifier-border);
+	position: relative;
 }
 
 .visual-editor-vista .ve-ds-tom.is-base:hover {
-	border-color: var(--background-modifier-border);
+	border-color: var(--interactive-accent);
+}
+
+/* Mesmo truque do `.ve-seletor-cor`: o input de cor fica invisível, cobrindo o tom inteiro. */
+.visual-editor-vista .ve-ds-tom-seletor {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	border: none;
+	opacity: 0;
+	cursor: pointer;
+	background: transparent;
+	appearance: none;
+	-webkit-appearance: none;
 }
 
 .visual-editor-vista .ve-ds-linha-valor {
@@ -2265,6 +2282,7 @@
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
 	line-height: 1.5;
+	overflow-wrap: anywhere;
 }
 
 .visual-editor-vista .ve-ds-amostra-card .ve-ds-campo-valor {
@@ -2295,6 +2313,13 @@
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 	border-color: var(--interactive-accent);
+}
+
+/* Os quatro presets de raio dentro de UM grupo de forma de botão — mais compactos que a grade geral. */
+.visual-editor-vista .ve-ds-grade-raio-botao {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 6px;
 }
 
 /* --- Tipografia --- */
@@ -2362,6 +2387,33 @@
 .visual-editor-vista .ve-ds-tipo-field select:focus {
 	outline: none;
 	color: var(--interactive-accent);
+}
+
+/*
+	O "card dentro do card": o valor puro fica numa caixinha própria, separada do rótulo — pedido dela
+	para deixar claro que ali é um campo preenchível, não só texto solto. A unidade (px) fica ao lado,
+	dentro da mesma caixinha, do mesmo jeito que os sliders de medida já mostram "px" ao lado do número.
+*/
+.visual-editor-vista .ve-ds-tipo-subcampo {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 3px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 3px 6px;
+}
+
+.visual-editor-vista .ve-ds-tipo-subcampo input {
+	background: transparent;
+}
+
+.visual-editor-vista .ve-ds-tipo-unidade {
+	flex: none;
+	font-size: 9px;
+	color: var(--text-faint);
+	font-family: var(--font-monospace);
 }
 
 .visual-editor-vista .ve-ds-outra-fonte {
@@ -2440,6 +2492,45 @@
 
 .visual-editor-vista .ve-ds-amostra-sombra.is-reserva {
 	border-style: dashed;
+}
+
+/*
+	Sombra desativada: uma caixa com "×", sem campos — pedido dela para distinguir de relance "ainda
+	não configurei" de "configurei tudo em 0" (que antes pareciam idênticos na tela). Clicar preenche
+	os cinco tokens de uma vez com a predefinição do papel, e o cartão vira o estado normal na hora.
+*/
+.visual-editor-vista .ve-ds-amostra-sombra.is-desativada {
+	border-style: dashed;
+}
+
+.visual-editor-vista .ve-ds-sombra-ativador {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 10px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-ds-sombra-ativador:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+}
+
+.visual-editor-vista .ve-ds-sombra-ativador-x {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+	font-size: 12px;
+	line-height: 1;
+	flex: none;
 }
 
 .visual-editor-vista .ve-ds-amostra-sombra .ve-ds-amostra-rotulo {
