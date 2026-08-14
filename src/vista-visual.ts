@@ -9,14 +9,14 @@ import {
 	ler,
 	modoDisponivel,
 } from "./documento";
-import { declararVariavel, declararVariavelDark, extrairVariavel, ligarVariavel, variaveisCompativeis } from "./extrair";
+import { declararVariavel, extrairVariavel, ligarVariavel, renomearVariaveis, variaveisCompativeis } from "./extrair";
 import { ModalNomeVariavel, sugerirNome } from "./modal-nome";
 import { abrirAcordeao, criarAcordeao } from "./acordeao";
 import { desenharDesignSystem } from "./design-system";
+import { desenharShadcn } from "./shadcn-vars";
 import { explicarSeletor } from "./explicar-seletor";
 import { Historico } from "./historico";
 import { ModalEscolherFonte } from "./modal-escolher-fonte";
-import { ModalEscolherIconeDS } from "./modal-escolher-icone-ds";
 import { PopoverToken } from "./popover-token";
 import type VisualEditorPlugin from "./main";
 import { Campo, humanizar } from "./tipos";
@@ -31,7 +31,7 @@ export const TIPO_VISTA_VISUAL = "visual-editor-vista";
  * Pedido dela: reabrir um arquivo onde a última coisa que editou foi o Design System deveria cair
  * direto lá, em vez de sempre em Tokens — hoje é o único jeito de "voltar" sem fechar e reabrir.
  */
-const ultimaAbaPorArquivo = new Map<string, "tokens" | "elementos" | "design-system">();
+const ultimaAbaPorArquivo = new Map<string, "tokens" | "elementos" | "design-system" | "shadcn">();
 
 /**
  * A view que mostra o arquivo como interface em vez de código.
@@ -65,14 +65,7 @@ export class VistaVisual extends TextFileView {
 	 * misturá-los numa lista só produziria dezenas de itens onde ela procura um. A aba some quando o
 	 * arquivo tem só um dos dois.
 	 */
-	private aba: "tokens" | "elementos" | "design-system" = "tokens";
-
-	/**
-	 * Qual tema a aba Design System está editando: claro grava em `:root`/`@theme`, escuro grava
-	 * dentro de `.dark` (criando o bloco se preciso — ver `declararVariavelDark`). É navegação, não
-	 * preferência salva: sempre nasce "claro" ao abrir o arquivo, como o resto do plugin.
-	 */
-	private modoTemaDesignSystem: "claro" | "escuro" = "claro";
+	private aba: "tokens" | "elementos" | "design-system" | "shadcn" = "tokens";
 
 	/**
 	 * As duas listas lado a lado, em vez de uma aba por vez.
@@ -249,6 +242,8 @@ export class VistaVisual extends TextFileView {
 			this.desenharCodigo();
 		} else if (this.aba === "design-system") {
 			this.desenharAbaDesignSystem();
+		} else if (this.aba === "shadcn") {
+			this.desenharAbaShadcn();
 		} else if (this.emparelhadoAtivo) {
 			this.desenharEmparelhado();
 		} else {
@@ -320,12 +315,13 @@ export class VistaVisual extends TextFileView {
 		const temTokens = this.tokens.length > 0;
 		const temElementos = this.elementos.length > 0;
 		const temDesignSystem = this.formato === "css";
+		const temShadcn = this.formato === "css";
 
-		if (!this.modoCodigo && (temTokens || temElementos || temDesignSystem) && !this.emparelhado) {
+		if (!this.modoCodigo && (temTokens || temElementos || temDesignSystem || temShadcn) && !this.emparelhado) {
 			const abas = esquerda.createDiv({ cls: "ve-abas" });
 
 			const criarAba = (
-				id: "tokens" | "elementos" | "design-system",
+				id: "tokens" | "elementos" | "design-system" | "shadcn",
 				rotulo: string,
 				quantos: number | null,
 				dica: string
@@ -366,9 +362,17 @@ export class VistaVisual extends TextFileView {
 			if (temDesignSystem) {
 				criarAba(
 					"design-system",
-					"Design System",
+					"Variáveis",
 					null,
-					"O catálogo curado: cores, tipografia, sombra e mais — inclusive papéis que o arquivo ainda não tem."
+					"Os valores soltos que vão construir o design system: cores, formatos, sombras e tipografia — sem ainda dizer onde cada um se aplica."
+				);
+			}
+			if (temShadcn) {
+				criarAba(
+					"shadcn",
+					"shadcn",
+					null,
+					"O catálogo de tokens do padrão shadcn/ui — background, sidebar, chart, radius e mais, com :root e .dark lado a lado."
 				);
 			}
 		}
@@ -384,7 +388,7 @@ export class VistaVisual extends TextFileView {
 			if (this.modoCodigo) this.desenharCodigo();
 			else this.desenharCampos();
 		});
-		if (this.modoCodigo || this.aba === "design-system") busca.hide();
+		if (this.modoCodigo || this.aba === "design-system" || this.aba === "shadcn") busca.hide();
 
 		const direita = this.barra.createDiv({ cls: "ve-barra-direita" });
 
@@ -821,37 +825,25 @@ export class VistaVisual extends TextFileView {
 	}
 
 	/**
-	 * A aba Design System: o catálogo curado de papéis (ver `design-system.ts`).
+	 * A aba Variáveis: o catálogo de valores soltos que vão construir o design system (ver
+	 * `design-system.ts`) — sem papel específico ainda, só o valor em si.
 	 *
-	 * As duas ações principais cobrem os dois estados de um papel: `aplicarToken` troca o valor de
-	 * um token que o arquivo já tem (mesmo caminho de `aplicar`, sem reescrever a estrutura dele) —
-	 * funciona igual nos dois modos, porque `design-system.ts` já escolheu o `Campo` certo (o de
-	 * `.dark` quando existe e o modo é escuro). `criarToken` declara um token novo, e é onde o modo
-	 * importa: no claro vai para `:root`/`@theme` (`declararVariavel`); no escuro vai para dentro de
-	 * `.dark`, criando o bloco se ainda não existir (`declararVariavelDark`). É a única das duas que
-	 * ACRESCENTA linha, por isso passa por `adotarTexto`, que relê o arquivo depois.
+	 * `aplicarToken` troca o valor de um token que o arquivo já tem — mesmo caminho de `aplicar`.
+	 * `criarToken` declara um token novo em `:root`/`@theme` (`declararVariavel`) — é a única que
+	 * ACRESCENTA linha, por isso passa por `adotarTexto`, que relê o arquivo depois. `renomearToken`
+	 * troca o NOME de um ou mais tokens já existentes, propagando para todo `var(--nome)` já usado
+	 * no arquivo (`renomearVariaveis`) — pedido dela: o nome provisório ("Cor clara 1") vira o nome
+	 * de verdade ("Fundo card") sem deixar usos antigos apontando para um token que sumiu. A lista
+	 * (em vez de um único par) existe porque a Sombra tem um nome comandando cinco tokens de uma vez.
 	 */
 	private desenharAbaDesignSystem(): void {
-		desenharDesignSystem(this.corpo, this.campos, this.formato, this.modoTemaDesignSystem, {
+		desenharDesignSystem(this.corpo, this.campos, this.formato, {
 			aplicarToken: (chave, novo) => {
 				const campo = this.campos.find((c) => c.chave === chave);
 				if (!campo) return;
 				this.aplicar(campo, novo);
 			},
 			criarToken: (nome, valorInicial) => {
-				if (this.modoTemaDesignSystem === "escuro") {
-					const declaradasDark = this.campos
-						.filter((c) => c.papel !== "propriedade" && c.grupo === ".dark")
-						.map((c) => c.nomeReal);
-					const resultado = declararVariavelDark(this.texto, nome, valorInicial, declaradasDark);
-					if (!resultado.ok) {
-						new Notice(resultado.erro ?? "Não foi possível criar a variável em .dark.");
-						return;
-					}
-					this.adotarTexto(resultado.texto, `Criar ${humanizar(nome)} (escuro)`);
-					return;
-				}
-
 				const declaradas = this.campos.filter((c) => c.papel !== "propriedade").map((c) => c.nomeReal);
 				const resultado = declararVariavel(this.texto, nome, valorInicial, declaradas);
 				if (!resultado.ok) {
@@ -860,18 +852,36 @@ export class VistaVisual extends TextFileView {
 				}
 				this.adotarTexto(resultado.texto, `Criar ${humanizar(nome)}`);
 			},
+			renomearToken: (pares) => {
+				const declaradas = this.campos.filter((c) => c.papel !== "propriedade").map((c) => c.nomeReal);
+				const resultado = renomearVariaveis(this.texto, pares, declaradas);
+				if (!resultado.ok) {
+					new Notice(resultado.erro ?? "Não foi possível renomear a variável.");
+					return false;
+				}
+				this.adotarTexto(resultado.texto, `Renomear ${humanizar(pares[0]?.nomeAntigo ?? "")}`);
+				return true;
+			},
 			abrirAjusteTom: (ancora, rotulo, valorInicial, hexInicial, aoMudar, aoSoltar) => {
 				this.popoverTom.abrirAjusteTom(ancora, rotulo, valorInicial, hexInicial, aoMudar, aoSoltar);
 			},
 			abrirSeletorFonte: (fontes, aoEscolher) => {
 				new ModalEscolherFonte(this.app, fontes, aoEscolher).open();
 			},
-			abrirSeletorIcone: (aoEscolher) => {
-				new ModalEscolherIconeDS(this.app, aoEscolher).open();
-			},
-			trocarModoTema: (modo) => {
-				this.modoTemaDesignSystem = modo;
-				this.desenhar();
+		});
+	}
+
+	/**
+	 * A aba shadcn: catálogo FIXO para o padrão de tokens que o CLI do shadcn/ui gera (ver
+	 * `shadcn-vars.ts`) — nomes conhecidos de antemão, `:root` e `.dark` lado a lado. Só
+	 * `aplicarToken`: nenhum token nasce nem é renomeado aqui, é só edição do que já existe.
+	 */
+	private desenharAbaShadcn(): void {
+		desenharShadcn(this.corpo, this.campos, {
+			aplicarToken: (chave, novo) => {
+				const campo = this.campos.find((c) => c.chave === chave);
+				if (!campo) return;
+				this.aplicar(campo, novo);
 			},
 		});
 	}

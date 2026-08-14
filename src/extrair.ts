@@ -306,6 +306,67 @@ export function declararVariavelDark(texto: string, nome: string, valor: string,
 	return { ok: true, texto: novo, casa: ".dark" };
 }
 
+function escapaRegex(texto: string): string {
+	return texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Renomeia VÁRIOS tokens numa passada só — a Sombra usa isto porque um nome ali comanda cinco
+ * tokens (`-cor`, `-x`, `-y`, `-blur`, `-opacidade`); renomeá-los um a um faria a interface
+ * redesenhar entre cada troca (todo `aplicarToken`/`criarToken` do plugin relê o arquivo depois de
+ * escrever), invalidando os `Campo` já capturados para os sufixos seguintes.
+ *
+ * Todas as validações rodam ANTES de qualquer escrita — se qualquer par falhar, nada muda, nem os
+ * que dariam certo sozinhos. Cada declaração é achada por busca do próprio `nomeAntigo` no texto
+ * CORRENTE (não por um índice de `Campo` herdado), porque depois do primeiro par escrito o texto já
+ * pode ter deslocado tudo que vem depois.
+ */
+export function renomearVariaveis(
+	texto: string,
+	pares: Array<{ nomeAntigo: string; nomeNovo: string }>,
+	declaradas: string[]
+): ResultadoExtracao {
+	for (const { nomeNovo } of pares) {
+		if (!nomeValido(nomeNovo)) {
+			return { ok: false, texto, erro: "O nome precisa começar com -- e conter só letras, números e hífens." };
+		}
+	}
+
+	const nomesNovos = pares.map((p) => p.nomeNovo);
+	const nomesAntigos = new Set(pares.map((p) => p.nomeAntigo));
+	for (const nomeNovo of nomesNovos) {
+		// Colide com algo já declarado no arquivo (fora do próprio lote sendo renomeado agora) ou com
+		// outro nome novo do mesmo lote (duas sombras não podem ganhar o mesmo nome de uma vez).
+		const colideComExistente = declaradas.includes(nomeNovo) && !nomesAntigos.has(nomeNovo);
+		const colideComLote = nomesNovos.filter((n) => n === nomeNovo).length > 1;
+		if (colideComExistente || colideComLote) {
+			return { ok: false, texto, erro: `A variável ${nomeNovo} já existe.` };
+		}
+	}
+
+	let atual = texto;
+	for (const { nomeAntigo, nomeNovo } of pares) {
+		// Relocaliza pelo NOME ANTIGO (ainda intacto — só este par o troca agora), não pelo índice
+		// herdado de `campo`, que o texto já pode ter deslocado por uma renomeação anterior do lote.
+		const reDeclaracao = new RegExp(escapaRegex(nomeAntigo) + "\\s*:");
+		const m = atual.match(reDeclaracao);
+		if (!m || m.index === undefined) {
+			return { ok: false, texto, erro: `Não encontrei a declaração de ${nomeAntigo} para renomear.` };
+		}
+		const inicioNome = m.index;
+		const fimNome = inicioNome + nomeAntigo.length;
+
+		let novo = atual.slice(0, inicioNome) + nomeNovo + atual.slice(fimNome);
+
+		const reUso = new RegExp(`var\\(\\s*${escapaRegex(nomeAntigo)}\\s*(?=[,)])`, "g");
+		novo = novo.replace(reUso, `var(${nomeNovo}`);
+
+		atual = novo;
+	}
+
+	return { ok: true, texto: atual };
+}
+
 /**
  * Liga uma propriedade a uma variável que já existe: o valor vira `var(--nome)`.
  *

@@ -239,6 +239,20 @@
 	text-align: left;
 }
 
+/*
+	Sem isto, o texto da descrição não quebra linha numa aba estreita — ela reportou não conseguir
+	ler o texto inteiro. O cabeçalho é um <button>, e o botão do tema Minimal força white-space:nowrap
+	nos próprios filhos por padrão; declarar aqui, dentro do escopo do plugin, sobrepõe isso.
+*/
+.visual-editor-vista .ve-acordeao-descricao {
+	white-space: normal;
+	overflow-wrap: break-word;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	line-height: 1.4;
+	margin-top: 2px;
+}
+
 .visual-editor-vista .ve-acordeao-seta {
 	display: inline-flex;
 	align-items: center;
@@ -1941,8 +1955,7 @@
 	background: var(--background-secondary);
 	border-radius: var(--radius-s);
 }
-
-/* --- Aba Design System ------------------------------------------------------------------------ */
+/* --- Aba Variáveis --------------------------------------------------------------------------- */
 
 .visual-editor-vista .ve-ds {
 	padding: 4px 4px 24px;
@@ -1964,6 +1977,56 @@
 	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
 
+.visual-editor-vista .ve-ds-grade-amostras {
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	margin-bottom: 14px;
+}
+
+.visual-editor-vista .ve-ds-grade-amostras:last-child {
+	margin-bottom: 0;
+}
+
+.visual-editor-vista .ve-ds-grade-sombra {
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+/*
+	O nome de toda variável é editável — pedido dela: cada valor nasce com um nome PROVISÓRIO
+	("Cor principal 1", "Raio 2") e ela troca quando quiser; o token gravado no CSS é o nome que
+	está aqui, não um apelido à parte. Título ACIMA do valor, alinhado à ESQUERDA — mesmo padrão em
+	todo cartão do catálogo (antes só "Cores principais" tinha isso; os outros centralizavam).
+*/
+.visual-editor-vista .ve-ds-amostra-rotulo {
+	display: block;
+	margin-bottom: 2px;
+}
+
+.visual-editor-vista .ve-ds-amostra-rotulo-entrada {
+	display: block;
+	width: 100%;
+	background: none;
+	border: none;
+	padding: 2px 4px;
+	margin: 0 0 8px -4px;
+	text-align: left;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	color: var(--text-normal);
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-ds-amostra-rotulo-entrada:hover {
+	background: var(--background-modifier-hover);
+}
+
+.visual-editor-vista .ve-ds-amostra-rotulo-entrada:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -1px;
+	background: var(--background-primary);
+}
+
+/* --- Cartão de cor com escala (Cores principais) ---------------------------------------------- */
+
 .visual-editor-vista .ve-ds-cartao {
 	display: flex;
 	flex-direction: column;
@@ -1974,34 +2037,8 @@
 	border-radius: var(--radius-m);
 }
 
-.visual-editor-vista .ve-ds-cartao.is-reserva {
-	border-style: dashed;
-}
-
 .visual-editor-vista .ve-ds-cartao-cabecalho {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.visual-editor-vista .ve-ds-cartao-rotulo {
-	font-size: var(--font-ui-small);
-	font-weight: var(--font-semibold);
-	color: var(--text-normal);
-}
-
-.visual-editor-vista .ve-ds-cartao.is-reserva .ve-ds-cartao-rotulo {
-	color: var(--text-muted);
-}
-
-.visual-editor-vista .ve-ds-badge-reserva {
-	font-size: var(--font-ui-smaller);
-	font-weight: 600;
-	letter-spacing: 0.02em;
-	color: var(--text-faint);
-	background: var(--background-modifier-border);
-	border-radius: 999px;
-	padding: 0.05em 0.55em;
+	display: block;
 }
 
 .visual-editor-vista .ve-ds-bloco-oficial {
@@ -2029,7 +2066,7 @@
 	border-color: var(--background-modifier-border-hover);
 }
 
-/* O tom do meio É a cor base: não abre popover de ajuste, mas continua clicável (abre o seletor nativo). */
+/* O tom do meio É a cor base: não abre popover de ajuste, mas continua clicável (seletor nativo). */
 .visual-editor-vista .ve-ds-tom.is-base {
 	cursor: pointer;
 	border-color: var(--background-modifier-border);
@@ -2040,7 +2077,7 @@
 	border-color: var(--interactive-accent);
 }
 
-/* Mesmo truque do `.ve-seletor-cor`: o input de cor fica invisível, cobrindo o tom inteiro. */
+/* Mesmo truque do `.ve-ds-swatch`: o input de cor fica invisível, cobrindo o tom inteiro. */
 .visual-editor-vista .ve-ds-tom-seletor {
 	position: absolute;
 	inset: 0;
@@ -2082,31 +2119,8 @@
 	color: var(--text-faint);
 }
 
-/* --- Design System: seções portadas do mockup (Status, Background/Texto/Cards, Botões, Tipografia, Sombra, Espaço/Raio, Alerts) --- */
+/* --- Cartão de amostra simples (cor solta, raio, peso, medida) --------------------------------- */
 
-.visual-editor-vista .ve-ds-rotulo-grupo {
-	font-size: var(--font-ui-smaller);
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	font-weight: 600;
-	color: var(--text-faint);
-	margin: 14px 0 7px;
-}
-
-.visual-editor-vista .ve-ds-rotulo-grupo:first-child {
-	margin-top: 0;
-}
-
-.visual-editor-vista .ve-ds-grade-amostras {
-	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-	margin-bottom: 14px;
-}
-
-.visual-editor-vista .ve-ds-grade-amostras:last-child {
-	margin-bottom: 0;
-}
-
-/* Cartão de amostra simples (cor, medida): retângulo + rótulo + valor, sem escala de tons. */
 .visual-editor-vista .ve-ds-amostra {
 	display: flex;
 	flex-direction: column;
@@ -2115,57 +2129,7 @@
 	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
-	text-align: center;
-}
-
-.visual-editor-vista .ve-ds-amostra.is-reserva {
-	border-style: dashed;
-}
-
-.visual-editor-vista .ve-ds-amostra-rotulo {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 6px;
-	font-size: var(--font-ui-smaller);
-	font-weight: 600;
-	color: var(--text-normal);
-}
-
-/*
-	O nome dos cards de ícone é editável — pedido dela: "poder renomear os cards dos ícones". Sem
-	borda/fundo por padrão para continuar lendo como rótulo, não como campo de formulário; só ganha
-	contorno ao focar, que é quando ela de fato está editando.
-*/
-.visual-editor-vista .ve-ds-amostra-rotulo-entrada {
-	width: 100%;
-	background: none;
-	border: none;
-	padding: 1px 3px;
-	text-align: center;
-	font-size: var(--font-ui-smaller);
-	font-weight: 600;
-	color: var(--text-normal);
-	border-radius: var(--radius-s);
-}
-
-.visual-editor-vista .ve-ds-amostra-rotulo-entrada:hover {
-	background: var(--background-modifier-hover);
-}
-
-.visual-editor-vista .ve-ds-amostra-rotulo-entrada:focus {
-	outline: 2px solid var(--interactive-accent);
-	outline-offset: -1px;
-	background: var(--background-primary);
-}
-
-.visual-editor-vista .ve-ds-amostra.is-reserva .ve-ds-amostra-rotulo,
-.visual-editor-vista .ve-ds-amostra-card.is-reserva .ve-ds-amostra-rotulo,
-.visual-editor-vista .ve-ds-amostra-tipo.is-reserva .ve-ds-amostra-rotulo,
-.visual-editor-vista .ve-ds-amostra-sombra.is-reserva .ve-ds-amostra-rotulo,
-.visual-editor-vista .ve-ds-amostra-alerta.is-reserva .ve-ds-amostra-rotulo,
-.visual-editor-vista .ve-ds-amostra.is-reserva .ve-ds-amostra-rotulo-entrada {
-	color: var(--text-muted);
+	text-align: left;
 }
 
 .visual-editor-vista .ve-ds-bloco-cor {
@@ -2175,29 +2139,18 @@
 	border: 1px solid var(--background-modifier-border);
 }
 
-.visual-editor-vista .ve-ds-bloco-aa {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: 700;
-	background: var(--background-primary);
-}
-
 .visual-editor-vista .ve-ds-campo-valor {
 	display: flex;
 	align-items: center;
-	justify-content: center;
 	gap: 6px;
 	flex-wrap: wrap;
 }
 
 /*
-	Mesmo padrão do `.ve-swatch` principal do plugin (ver comentário em torno da linha 560): o
-	<input type="color"> nativo desenha um traço fino por dentro mesmo com o pseudo-elemento
-	::-webkit-color-swatch estilizado — não é confiável sozinho. Aqui o input fica INVISÍVEL,
-	dentro de um invólucro `.ve-ds-swatch` que é quem de fato mostra a cor e a borda; o clique
-	continua indo para o input de verdade (position: relative + inset: 0), não um `.click()`
-	sintético, que o Electron ignora em silêncio.
+	Mesmo padrão do `.ve-swatch` principal do plugin: o <input type="color"> nativo desenha um traço
+	fino por dentro mesmo com o pseudo-elemento ::-webkit-color-swatch estilizado — não é confiável
+	sozinho. O input fica INVISÍVEL, dentro de um invólucro `.ve-ds-swatch` que é quem de fato mostra
+	a cor e a borda; o clique continua indo para o input de verdade (position: relative + inset: 0).
 */
 .visual-editor-vista .ve-ds-swatch {
 	position: relative;
@@ -2230,16 +2183,6 @@
 	-webkit-appearance: none;
 }
 
-.visual-editor-vista .ve-ds-campo-valor input[type="color"]::-webkit-color-swatch-wrapper {
-	padding: 0;
-	border-radius: var(--radius-s);
-}
-
-.visual-editor-vista .ve-ds-campo-valor input[type="color"]::-webkit-color-swatch {
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-}
-
 .visual-editor-vista .ve-ds-entrada-hex-inline {
 	width: 72px;
 	font-family: var(--font-monospace);
@@ -2262,198 +2205,53 @@
 	color: var(--text-faint);
 }
 
-/* interruptor de borda — Cards e forma dos Botões */
-.visual-editor-vista .ve-ds-borda-toggle {
+/* --- Formato (raio) e medidas de tipografia — slider + número, mesmas classes de controles.ts -- */
+
+.visual-editor-vista .ve-ds-preview-medida {
+	width: 100%;
+	height: 40px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
 	display: flex;
 	align-items: center;
-	gap: 5px;
-	font-size: var(--font-ui-smaller);
-	color: var(--text-muted);
+	justify-content: center;
+}
+
+/* A pílula sem valor ainda — clicar cria a variável (999px fixo, não há o que digitar). */
+.visual-editor-vista .ve-ds-preview-medida.is-reserva-clicavel {
+	border-style: dashed;
 	cursor: pointer;
-	white-space: nowrap;
-}
-
-.visual-editor-vista .ve-ds-mini-switch {
-	width: 24px;
-	height: 14px;
-	border-radius: 999px;
-	background: var(--background-modifier-border);
-	position: relative;
-	flex: none;
-}
-
-.visual-editor-vista .ve-ds-mini-switch::before {
-	content: "";
-	position: absolute;
-	top: 1.5px;
-	left: 1.5px;
-	width: 11px;
-	height: 11px;
-	border-radius: 50%;
-	background: var(--background-primary);
-	transition: left 100ms ease;
-}
-
-.visual-editor-vista .ve-ds-mini-switch.is-ligado {
-	background: var(--interactive-accent);
-}
-
-.visual-editor-vista .ve-ds-mini-switch.is-ligado::before {
-	left: 11.5px;
-}
-
-/* --- Cards --- */
-
-.visual-editor-vista .ve-ds-grade-cards {
-	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-}
-
-.visual-editor-vista .ve-ds-amostra-card {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	padding: 14px;
-	background: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-m);
-}
-
-.visual-editor-vista .ve-ds-amostra-card.is-reserva {
-	border-style: dashed;
-}
-
-.visual-editor-vista .ve-ds-amostra-card h4 {
-	margin: 0;
-	font-size: var(--font-ui-medium);
-}
-
-.visual-editor-vista .ve-ds-amostra-card p {
-	margin: 0;
+	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
+}
+
+.visual-editor-vista .ve-ds-preview-medida.is-reserva-clicavel:hover {
+	border-color: var(--interactive-accent);
 	color: var(--text-muted);
-	line-height: 1.5;
-	overflow-wrap: anywhere;
 }
 
-.visual-editor-vista .ve-ds-amostra-card .ve-ds-campo-valor {
-	justify-content: flex-start;
-	margin-top: 4px;
-}
-
-/* --- Botões: forma reutilizável --- */
-
-.visual-editor-vista .ve-ds-grade-forma {
-	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-}
-
-/* --- Tipografia --- */
-
-.visual-editor-vista .ve-ds-grade-tipografia {
-	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-}
-
-.visual-editor-vista .ve-ds-amostra-tipo {
-	padding: 14px;
-	background: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-m);
-}
-
-.visual-editor-vista .ve-ds-amostra-tipo.is-reserva {
-	border-style: dashed;
-}
-
-.visual-editor-vista .ve-ds-amostra-tipo .ve-ds-amostra-rotulo {
-	justify-content: flex-start;
-	margin-bottom: 8px;
-}
+/* --- Tipografia: amostra "Aa" e select de peso -------------------------------------------------- */
 
 .visual-editor-vista .ve-ds-amostra-tipo-texto {
-	color: var(--text-normal);
-	margin: 0 0 10px;
-}
-
-.visual-editor-vista .ve-ds-tipo-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-	gap: 6px;
-}
-
-.visual-editor-vista .ve-ds-tipo-field {
-	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: 5px 7px;
-}
-
-.visual-editor-vista .ve-ds-tipo-field label {
-	display: block;
-	font-size: 9px;
-	text-transform: uppercase;
-	letter-spacing: 0.03em;
-	color: var(--text-faint);
-	font-weight: 700;
-	margin-bottom: 2px;
-}
-
-.visual-editor-vista .ve-ds-tipo-field input,
-.visual-editor-vista .ve-ds-tipo-field select {
-	width: 100%;
-	border: none;
-	background: transparent;
-	font-size: var(--font-ui-smaller);
-	color: var(--text-normal);
-	font-family: var(--font-monospace);
-	padding: 0;
-}
-
-.visual-editor-vista .ve-ds-tipo-field input:focus,
-.visual-editor-vista .ve-ds-tipo-field select:focus {
-	outline: none;
-	color: var(--interactive-accent);
-}
-
-/*
-	O "card dentro do card": o valor puro fica numa caixinha própria, separada do rótulo — pedido dela
-	para deixar claro que ali é um campo preenchível, não só texto solto. A unidade (px) fica ao lado,
-	dentro da mesma caixinha, do mesmo jeito que os sliders de medida já mostram "px" ao lado do número.
-*/
-.visual-editor-vista .ve-ds-tipo-subcampo {
 	display: flex;
 	align-items: center;
-	gap: 4px;
-	margin-top: 3px;
-	background: var(--background-secondary);
+	justify-content: center;
+	height: 40px;
+	font-size: 22px;
+	color: var(--text-normal);
+	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
-	padding: 3px 6px;
 }
 
-.visual-editor-vista .ve-ds-tipo-subcampo input {
-	background: transparent;
-}
-
-.visual-editor-vista .ve-ds-tipo-unidade {
-	flex: none;
-	font-size: 9px;
-	color: var(--text-faint);
-	font-family: var(--font-monospace);
-}
-
-.visual-editor-vista .ve-ds-outra-fonte {
+.visual-editor-vista .ve-ds-select-sombra {
 	width: 100%;
-	margin-top: 4px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: 3px 5px;
 	font-size: var(--font-ui-smaller);
 	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 4px 5px;
 	color: var(--text-normal);
-	font-family: var(--font-monospace);
-}
-
-.visual-editor-vista .ve-ds-outra-fonte.is-oculto {
-	display: none;
 }
 
 /* O botão que abre o ModalEscolherFonte — o nome já aparece na própria tipografia. */
@@ -2481,6 +2279,22 @@
 	display: none;
 }
 
+.visual-editor-vista .ve-ds-outra-fonte {
+	width: 100%;
+	margin-top: 4px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 3px 5px;
+	font-size: var(--font-ui-smaller);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+}
+
+.visual-editor-vista .ve-ds-outra-fonte.is-oculto {
+	display: none;
+}
+
 .visual-editor-vista .ve-ds-link-outra-fonte {
 	display: block;
 	margin-top: 4px;
@@ -2498,11 +2312,7 @@
 	color: var(--text-muted);
 }
 
-/* --- Sombra --- */
-
-.visual-editor-vista .ve-ds-grade-sombra {
-	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-}
+/* --- Sombra -------------------------------------------------------------------------------------- */
 
 .visual-editor-vista .ve-ds-amostra-sombra {
 	display: flex;
@@ -2512,16 +2322,12 @@
 	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
-}
-
-.visual-editor-vista .ve-ds-amostra-sombra.is-reserva {
-	border-style: dashed;
+	text-align: left;
 }
 
 /*
-	Sombra desativada: uma caixa com "×", sem campos — pedido dela para distinguir de relance "ainda
-	não configurei" de "configurei tudo em 0" (que antes pareciam idênticos na tela). Clicar preenche
-	os cinco tokens de uma vez com a predefinição do papel, e o cartão vira o estado normal na hora.
+	Sombra desativada: uma caixa com "×", sem campos — distingue de relance "ainda não configurei" de
+	"configurei tudo em 0". Clicar preenche os cinco tokens de uma vez com a predefinição.
 */
 .visual-editor-vista .ve-ds-amostra-sombra.is-desativada {
 	border-style: dashed;
@@ -2555,10 +2361,6 @@
 	font-size: 12px;
 	line-height: 1;
 	flex: none;
-}
-
-.visual-editor-vista .ve-ds-amostra-sombra .ve-ds-amostra-rotulo {
-	justify-content: flex-start;
 }
 
 .visual-editor-vista .ve-ds-preview-sombra {
@@ -2623,242 +2425,233 @@
 	outline-offset: -1px;
 }
 
-/* --- Espaço e Raio --- */
+/* Desativar de novo — sem isto, uma sombra preenchida uma vez nunca mais podia "sumir". */
+.visual-editor-vista .ve-ds-sombra-desativar {
+	align-self: flex-start;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	font-size: 9.5px;
+	color: var(--text-faint);
+	padding: 0;
+	cursor: pointer;
+	text-decoration: underline;
+}
 
-.visual-editor-vista .ve-ds-preview-medida {
-	width: 100%;
-	height: 40px;
+.visual-editor-vista .ve-ds-sombra-desativar:hover {
+	color: var(--text-muted);
+}
+
+/* --- Aba shadcn: catálogo fixo do padrão de tokens shadcn/ui, :root e .dark lado a lado -------- */
+
+.visual-editor-vista .ve-sc {
+	padding: 4px 4px 24px;
+}
+
+.visual-editor-vista .ve-sc-cabecalho-colunas {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+	margin-bottom: 4px;
+	position: sticky;
+	top: 0;
 	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	display: flex;
-	align-items: center;
-	justify-content: center;
+	z-index: 1;
+	padding-bottom: 6px;
 }
 
-.visual-editor-vista .ve-ds-espaco-bloco {
-	width: 10px;
-	height: 20px;
-	background: var(--interactive-accent);
-	border-radius: 3px;
-}
-
-/* --- Alerts --- */
-
-.visual-editor-vista .ve-ds-grade-alertas {
-	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-}
-
-.visual-editor-vista .ve-ds-amostra-alerta {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	padding: 12px 14px;
-	background: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-	border-left: 3px solid var(--background-modifier-border);
-	border-radius: var(--radius-m);
-	text-align: left;
-}
-
-.visual-editor-vista .ve-ds-amostra-alerta.is-reserva {
-	border-style: dashed;
-	border-left-style: solid;
-}
-
-.visual-editor-vista .ve-ds-amostra-alerta-icone {
-	font-size: 15px;
-	flex: none;
-	line-height: 1.3;
-}
-
-.visual-editor-vista .ve-ds-amostra-alerta-corpo {
-	flex: 1;
-	min-width: 0;
-}
-
-.visual-editor-vista .ve-ds-amostra-alerta .ve-ds-amostra-rotulo {
-	justify-content: flex-start;
-	margin-bottom: 2px;
-}
-
-.visual-editor-vista .ve-ds-amostra-alerta-msg {
-	display: block;
+.visual-editor-vista .ve-sc-titulo-coluna {
 	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--text-faint);
+	text-align: center;
+}
+
+.visual-editor-vista .ve-sc-bloco {
+	margin-top: 18px;
+}
+
+.visual-editor-vista .ve-sc-bloco:first-of-type {
+	margin-top: 8px;
+}
+
+.visual-editor-vista .ve-sc-bloco-titulo {
+	font-size: var(--font-ui-smaller);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-weight: 600;
 	color: var(--text-faint);
 	margin-bottom: 8px;
 }
 
-.visual-editor-vista .ve-ds-amostra-alerta .ve-ds-campo-valor {
-	justify-content: flex-start;
-}
-
-/* --- Modal de escolher fonte (busca fuzzy, cada linha na própria tipografia) --- */
-
-.ve-fonte-sugestao {
+.visual-editor-vista .ve-sc-linhas {
 	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 1em;
+	flex-direction: column;
+	gap: 6px;
 }
 
-.ve-fonte-sugestao-amostra {
-	font-size: 1.15em;
-	color: var(--text-normal);
-	overflow: hidden;
-	text-overflow: ellipsis;
+.visual-editor-vista .ve-sc-linha {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+
+/*
+	Cada campo: o nome técnico da variável (ex. "--background:") seguido do valor — pedido dela,
+	"o nome da variável mesmo, que vem antes dos dois-pontos". Sem humanizar, sem esconder.
+*/
+.visual-editor-vista .ve-sc-campo {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	min-width: 0;
+}
+
+.visual-editor-vista .ve-sc-campo.is-vazio {
+	border-style: dashed;
+	opacity: 0.6;
+}
+
+.visual-editor-vista .ve-sc-nome-token {
+	flex: none;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
 	white-space: nowrap;
 }
 
-.ve-fonte-sugestao-nome {
-	flex: 0 0 auto;
+.visual-editor-vista .ve-sc-vazio-texto {
 	font-size: var(--font-ui-smaller);
+	font-style: italic;
 	color: var(--text-faint);
 }
 
-/* --- Modal de escolher ícone (busca fuzzy Lucide, na seção Ícones do Design System) --- */
-
-.ve-icone-sugestao {
-	display: flex;
-	align-items: center;
-	gap: 0.7em;
-}
-
-.ve-icone-sugestao-icone {
-	display: flex;
-	align-items: center;
-	color: var(--text-muted);
-	flex: none;
-}
-
-.ve-icone-sugestao-icone svg {
-	width: 16px;
-	height: 16px;
-}
-
-.ve-icone-sugestao-nome {
-	font-size: var(--font-ui-small);
-	color: var(--text-normal);
-}
-
-/* --- Design System: grupos de forma (Cards, Ícones) e utilidades pequenas --- */
-
-/* O cartão de um grupo de forma é mais largo que uma amostra comum — raio + borda + sombra juntos. */
-.visual-editor-vista .ve-ds-grade-forma-card {
-	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-}
-
-.visual-editor-vista .ve-ds-amostra-forma-card {
-	gap: 10px;
-}
-
-/* Select genérico (sombra do grupo de Cards, forma dos Ícones) — mesma casca dos outros campos. */
-.visual-editor-vista .ve-ds-select-sombra {
-	width: 100%;
+.visual-editor-vista .ve-sc-entrada-texto,
+.visual-editor-vista .ve-sc-entrada-hex {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
-	padding: 4px 5px;
+	padding: 3px 6px;
 	color: var(--text-normal);
 }
 
-.visual-editor-vista .ve-ds-rotulo-inline {
-	font-size: var(--font-ui-smaller);
-	color: var(--text-faint);
+.visual-editor-vista .ve-sc-entrada-texto:focus,
+.visual-editor-vista .ve-sc-entrada-hex:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -1px;
+}
+
+.visual-editor-vista .ve-sc-entrada-texto:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Mesmo padrão do `.ve-ds-swatch`: o input de cor fica invisível dentro do invólucro. */
+.visual-editor-vista .ve-sc-swatch {
+	position: relative;
+	width: 18px;
+	height: 18px;
 	flex: none;
-}
-
-/* Raio/espaço "menorzinho" (Raio 2, Raio 3, Espaço 2) — o principal continua no tamanho de sempre. */
-.visual-editor-vista .ve-ds-preview-medida.is-pequeno {
-	height: 28px;
-}
-
-/* --- Ícones --- */
-
-/* Cards de ícone são bem menores que os de cor — colunas mais estreitas evitam sobra de espaço vazio. */
-.visual-editor-vista .ve-ds-grade-icones {
-	grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-}
-
-.visual-editor-vista .ve-ds-preview-icone {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 4px 0;
-}
-
-.visual-editor-vista .ve-ds-icone-bolha {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 30px;
-	height: 30px;
-	color: var(--text-normal);
-}
-
-.visual-editor-vista .ve-ds-icone-bolha svg {
-	width: 15px;
-	height: 15px;
-}
-
-.visual-editor-vista .ve-ds-icone-bolha.is-sem-fundo {
-	background: none !important;
-}
-
-/* --- Cor de borda escolível (Botões, Cards) --- */
-
-.visual-editor-vista .ve-ds-campo-valor-coluna {
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 6px;
-}
-
-.visual-editor-vista .ve-ds-select-cor-borda {
-	width: 100%;
-}
-
-.visual-editor-vista .ve-ds-select-cor-borda.is-oculto {
-	display: none;
-}
-
-/* --- Alternador de tema (Claro/Escuro) --- */
-
-.visual-editor-vista .ve-ds-alternador-tema {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin-bottom: 16px;
-	padding-bottom: 12px;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.visual-editor-vista .ve-ds-alternador-botao {
-	font-size: var(--font-ui-small);
-	font-weight: 600;
-	background: var(--background-secondary);
+	border-radius: var(--radius-s);
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 999px;
-	padding: 5px 14px;
-	color: var(--text-muted);
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
 	cursor: pointer;
 }
 
-.visual-editor-vista .ve-ds-alternador-botao:hover {
-	color: var(--text-normal);
-	border-color: var(--background-modifier-border-hover);
-}
-
-.visual-editor-vista .ve-ds-alternador-botao.is-ativo {
-	background: var(--interactive-accent);
+.visual-editor-vista .ve-sc-swatch:hover {
 	border-color: var(--interactive-accent);
-	color: var(--text-on-accent);
 }
 
-.visual-editor-vista .ve-ds-alternador-nota {
-	flex: 1 1 auto;
-	min-width: 200px;
+/* A cor original era mais saturada do que hex alcança — mostrando a mais próxima possível. */
+.visual-editor-vista .ve-sc-swatch.is-fora-do-gamut {
+	box-shadow:
+		inset 0 0 0 1px rgb(0 0 0 / 8%),
+		0 0 0 2px var(--background-secondary),
+		0 0 0 3px var(--color-orange);
+}
+
+.visual-editor-vista .ve-sc-swatch input[type="color"] {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	border: none;
+	opacity: 0;
+	cursor: pointer;
+	background: none;
+	appearance: none;
+	-webkit-appearance: none;
+}
+
+/* --- Radius: base + grade de multiplicadores -------------------------------------------------- */
+
+.visual-editor-vista .ve-sc-grade-multiplicadores {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+	gap: 10px;
+	margin-top: 10px;
+}
+
+.visual-editor-vista .ve-sc-multiplicador {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	text-align: center;
+}
+
+.visual-editor-vista .ve-sc-multiplicador.is-vazio {
+	border-style: dashed;
+	opacity: 0.6;
+}
+
+.visual-editor-vista .ve-sc-multiplicador-rotulo {
 	font-size: var(--font-ui-smaller);
-	color: var(--text-faint);
-	line-height: 1.4;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-sc-multiplicador .ve-sc-nome-token {
+	white-space: normal;
+	word-break: break-word;
+	font-size: 9px;
+}
+
+.visual-editor-vista .ve-sc-multiplicador-preview {
+	width: 100%;
+	height: 32px;
+	background: var(--interactive-accent);
+	opacity: 0.5;
+}
+
+.visual-editor-vista .ve-sc-entrada-numero {
+	width: 100%;
+	text-align: center;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 3px 5px;
+	color: var(--text-normal);
+}
+
+.visual-editor-vista .ve-sc-entrada-numero:focus {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: -1px;
 }

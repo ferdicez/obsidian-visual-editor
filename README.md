@@ -27,9 +27,12 @@ Este plugin troca o paredão por controles:
 | `padding: 8px 16px;` | quatro campos (cima, direita, baixo, esquerda) |
 | `--animacao-ativa: true;` | um interruptor |
 
-Além de editar o que o arquivo já tem, a aba **Design System** (ver [seção própria](#a-aba-design-system))
-cataloga o que um projeto **deveria** ter — cor, tipografia, ícones, sombra, espaço, tema claro e
-escuro — e cria os tokens que ainda faltam, direto do formulário.
+Além de editar o que o arquivo já tem, duas abas ajudam a **construir** um design system do zero:
+
+- **Variáveis** (ver [seção própria](#a-aba-variáveis)) — um catálogo de valores soltos (cores,
+  formatos, sombras, tipografia), sem dono ainda, prontos para nomear e usar.
+- **shadcn** (ver [seção própria](#a-aba-shadcn)) — sob medida para o padrão de tokens que o CLI do
+  [shadcn/ui](https://ui.shadcn.com) gera, com `:root` e `.dark` lado a lado.
 
 ---
 
@@ -149,15 +152,17 @@ momento que o plugin mexeu só no que devia. Editar por lá também funciona.
 
 ---
 
-## A aba Design System
+## A aba Variáveis
 
-Em qualquer arquivo CSS, uma terceira aba aparece ao lado de Tokens e Elementos: **Design System**.
-Onde as outras duas mostram o que o arquivo *já tem*, esta mostra o que um design system
-*deveria* ter — um catálogo com papéis fixos (cor principal, botão de salvar, sombra de card…),
-prontos para preencher, mesmo que o arquivo ainda não declare nada.
+Em qualquer arquivo CSS, uma aba aparece ao lado de Tokens e Elementos: **Variáveis**. Onde Tokens
+mostra o que o arquivo *já tem* e Elementos mostra *onde* cada token é usado, Variáveis é o começo
+da linha de montagem: um catálogo de **valores soltos, sem dono ainda** — cores, formatos, sombras,
+tipografia — prontos para você nomear e, depois, decidir onde cada um se aplica.
 
-Pensada para quem monta os tokens de um projeto do zero — ou quer arrumar um projeto com
-nomenclatura confusa — sem abrir o navegador: você mexe nos controles, o plugin escreve o CSS.
+Cada variável nasce com um **nome provisório** ("Cor principal 1", "Raio 2") — que já é o nome do
+token gravado no CSS até você trocar. Editar o nome de uma variável já preenchida **renomeia em
+cascata**: a declaração muda de nome, e todo `var(--nome-antigo)` já usado em qualquer regra do
+arquivo passa a apontar para o nome novo, numa passada só — nada fica quebrado.
 
 ### Criar o arquivo
 
@@ -168,26 +173,23 @@ pronto para receber os tokens:
 - O botão **"Criar arquivo…"** no painel de configurações do plugin.
 - O botão que aparece no explorador lateral quando ele ainda não encontra nenhum arquivo editável.
 
-Qualquer um dos três pergunta a pasta e o nome, cria o arquivo e já abre direto na aba Design
-System.
+Qualquer um dos três pergunta a pasta e o nome, cria o arquivo e já abre direto na aba Variáveis.
 
-### As dez seções
+### Os 11 blocos
 
-| Seção | O que cataloga |
+| Bloco | O que cataloga |
 |---|---|
-| **1. Cores principais** | As 5 cores que carregam a identidade do projeto, cada uma com uma escala de tons |
-| **2. Status** | 6 cores de um fluxo com etapas — do início ao concluído |
-| **3. Background e Texto** | 5 fundos e 5 cores de texto |
-| **4. Cards** | 3 cartões, cada um escolhendo um **grupo de forma** (raio + borda + sombra) |
-| **5. Botões** | Cor por propósito (destrutivo, salvar, cancelar…) e uma forma reutilizável (raio + borda com cor escolhível) |
-| **6. Ícones** | 10 papéis (buscar, salvar, editar…) escolhidos por busca no pacote Lucide, com grupos de exibição reutilizáveis |
-| **7. Tipografia** | Família, tamanho, peso, entrelinhas e espaço entre letras — 6 papéis prontos |
-| **8. Sombra** | Cor, deslocamento e desfoque, com uma prévia ao lado |
-| **9. Espaço e Raio** | Medidas de reserva: 3 raios genéricos e 2 espaçamentos, cada um com slider e prévia |
-| **10. Alerts** | A cor da faixa lateral de cada estado (padrão, erro, sucesso, aviso) |
-
-Um papel sem token ainda no arquivo aparece **"de reserva"** (contorno tracejado): preencher o valor
-declara a variável na hora — não precisa criar o token primeiro para depois usar o catálogo.
+| **1. Cores principais** | 5 cores, cada uma com uma escala de 5 tons calculada a partir do hex que você digita |
+| **2. Cores claras** | 4 cores soltas, hex livre, sem cálculo |
+| **3. Cores escuras** | 4 cores soltas, hex livre, sem cálculo |
+| **4. Cores destaque** | 5 cores de reforço — erro, sucesso, aviso, ou qualquer papel que você nomear |
+| **5. Formato** | 4 raios com slider livre + 1 fixo em pílula (999px) |
+| **6. Sombra** | 3 sombras completas — cor, X, Y, desfoque, opacidade — com prévia e botão de ativar/desativar |
+| **7. Estilo da letra** | 3 famílias, escolhidas por busca entre as fontes do Google (ou "Outra…") |
+| **8. Tamanho da letra** | 5 tamanhos, em px |
+| **9. Peso** | 5 pesos de fonte |
+| **10. Espaçamento entre letras** | 3 opções, em px |
+| **11. Entrelinhas** | 3 opções, um multiplicador sem unidade |
 
 ### A escala de tons de Cores principais
 
@@ -197,61 +199,62 @@ matiz e saturação, variando só a luminosidade — então digitar `#5b5bd6` j�
 sem precisar escolher cinco hex à mão.
 
 Clicando num dos 4 tons calculados (não no do meio, que é a própria cor base), abre uma janelinha
-com dois sliders — **saturação** e **luminosidade** — para ajustar aquele tom especificamente, mais
-um botão para **copiar o hex** resultante e reusar em outro lugar do sistema. O ajuste é relativo ao
-tom calculado, e fica salvo como tokens extras no próprio arquivo (ex.: `--principal-1-tom0-sat`,
-`--principal-1-tom0-lum`): trocar a cor principal depois recalcula a escala toda mantendo os
-ajustes relativos que você já fez.
+com dois sliders — **saturação** e **luminosidade** — para ajustar aquele tom especificamente. O
+ajuste é relativo ao tom calculado e fica salvo como tokens extras no próprio arquivo (ex.:
+`--cor-principal-1-tom0-sat`, `--cor-principal-1-tom0-lum`): trocar a cor base depois recalcula a
+escala toda mantendo os ajustes relativos que você já fez.
 
-### Cards: grupos de forma
+### Sombra: ativar e desativar
 
-Em vez de um raio e uma borda únicos para os três cartões, a seção Cards tem **grupos de forma**
-(Forma A, B, C) — cada um com o próprio raio, borda e sombra — e cada card escolhe qual grupo usar.
-Assim um card pode ter sombra e borda enquanto outro não tem nenhuma das duas, sem duplicar a
-definição inteira: mudar o raio da Forma A muda todos os cards que a usam, de uma vez.
+Uma sombra ainda vazia aparece como uma caixa tracejada com um "×" — clicar preenche os cinco
+campos de uma vez com uma predefinição, e SÓ ENTÃO os controles aparecem. O botão **Desativar**
+zera a opacidade (o plugin não apaga linha de arquivo, então "desativar" é deixar a sombra
+invisível, não remover a declaração) — o campo de opacidade volta a mostrar `0` na hora.
 
-A mesma lógica vale para a **forma dos Botões**: escolher a forma primeiro (antes da cor) faz os
-cartões de cor abaixo já nascerem mostrando o raio escolhido.
+---
 
-### O toggle de borda, e a cor da borda
+## A aba shadcn
 
-Botões e Cards têm um interruptor de borda ao lado do raio. Ligado, grava `1` — desligado, `0` — num
-token próprio (`--btn-forma-borda`, `--card-forma-a-borda`), pensado para `calc(var(--x-borda, 0) *
-1px)` na regra que consome o token.
+Uma aba fixa, sob medida para o padrão de tokens que o **CLI do shadcn/ui** gera (o `globals.css`
+com `@theme inline`, `:root` e `.dark`). Diferente de Variáveis (catálogo genérico, sem nomes
+conhecidos de antemão), aqui os nomes são fixos — se o arquivo aberto não seguir esse padrão, os
+campos aparecem vazios, o que é esperado: a aba é para quem trabalha com esse formato específico.
 
-Com a borda ligada, um seletor de cor aparece ao lado: **"cor do texto"** (o padrão, sem token
-próprio) ou qualquer token de cor já declarado no catálogo — Backgrounds, Cores principais, Status…
-Escolher um papel grava `var(--esse-token)`, não o hex: a borda continua acompanhando aquele papel
-se a cor dele mudar depois.
+### Duas colunas, sempre visíveis
 
-### Ícones
+Cada linha mostra **duas colunas lado a lado**: a esquerda edita o valor dentro de `:root` (tema
+claro), a direita edita o mesmo token dentro de `.dark` (tema escuro) — sem precisar alternar entre
+os dois modos, você vê e ajusta os dois de uma vez.
 
-10 papéis prontos (Buscar, Adicionar, Salvar, Editar, Excluir, Fechar, Voltar, Avançar, Menu,
-Configurações), cada um com um ícone Lucide sugerido. Clicar no nome do ícone abre uma busca — o
-mesmo motor de busca por ícone que os outros plugins deste cofre usam — e escolher grava o NOME do
-ícone como token (`--icone-salvar: "save"`), não o SVG: é você quem desenha o ícone no código,
-usando esse nome.
+### O nome do token, sempre visível
 
-Como em Cards, há **grupos de exibição** reutilizáveis — Sozinho, Com fundo circular, Com fundo
-quadrado — e cada papel de ícone escolhe um. Trocar o grupo muda como TODOS os ícones daquele grupo
-aparecem, de uma vez.
+Cada campo mostra o **nome técnico exato** do token (`--background:`, `--primary:`…) antes do
+valor — sem humanizar, sem esconder atrás de um rótulo bonito. É o mesmo nome que aparece no CSS.
 
-### Modo Claro / Escuro
+### Cor: você edita em hex, o arquivo continua em oklch
 
-Um interruptor no topo da aba alterna entre editar o tema **Claro** e o **Escuro**. No modo escuro,
-os valores que você grava vão para dentro de um bloco `.dark { }` no próprio arquivo — o padrão
-Tailwind/shadcn, onde essa classe na tag `<html>` troca os tokens sozinha, sem precisar duplicar CSS
-em outro lugar do projeto.
+O CLI do shadcn/ui grava cor em `oklch()` — um formato mais preciso, mas que ninguém decora de
+cabeça. Nesta aba você **nunca vê o número oklch**: a barra de cor mostra a aproximação em hex,
+clicar abre o seletor de cor nativo do sistema, e colar um hex funciona normalmente. Por trás, o
+plugin converte o hex escolhido de volta para `oklch()` antes de gravar — o arquivo continua no
+formato que o shadcn/ui espera.
 
-O bloco `.dark` só é criado no arquivo quando você de fato ajusta uma cor no modo escuro pela
-primeira vez — nunca preventivamente. Um papel sem valor próprio no escuro aparece "de reserva"
-mesmo já preenchido no claro: os dois modos são independentes, preencher um não obriga a preencher
-o outro.
+Como `oklch()` cobre uma faixa de cor maior que hex/sRGB, uma cor muito saturada (o vermelho do
+`destructive`, por exemplo) pode não caber exatamente em hex — nesse caso a amostra mostra a cor
+mais próxima possível, com um contorno laranja avisando que é uma aproximação.
 
-### O que ainda não tem uma seção
+### O que cada token é
 
-A seção **Formulário** do desenho original (contexto de `border`/`ring` num campo de texto) ainda
-não foi construída — hoje não há um token próprio para ela criar ou aplicar.
+| Bloco | Tokens | O que representa |
+|---|---|---|
+| **1. Background e Foreground** | `--background`, `--foreground` | A cor de fundo da página inteira, e a cor do texto padrão sobre ela. |
+| **2. Fonte** | `--font-sans`, `--font-mono`, `--font-heading` | As três pilhas de fonte do projeto — texto corrido, código, e títulos. |
+| **3. Sidebar** | `--sidebar`, `--sidebar-foreground`, `--sidebar-primary(-foreground)`, `--sidebar-accent(-foreground)`, `--sidebar-border`, `--sidebar-ring` | O conjunto completo de cores só da barra lateral — ela pode ter uma paleta diferente do resto da página. |
+| **4. Chart** | `--chart-1` a `--chart-5` | Cinco cores para gráficos, pensadas para serem distintas umas das outras. |
+| **5. Ring, Input e Border** | `--ring`, `--input`, `--border` | `ring` é o contorno de foco (quando você tabula até um campo); `input` é o fundo/borda de campos de formulário; `border` é a borda padrão de qualquer elemento. |
+| **6. Destructive, Accent e Muted** | `--destructive`, `--accent(-foreground)`, `--muted(-foreground)` | `destructive` é a cor de ação perigosa — excluir, erro. `accent` é o realce sutil ao interagir (hover de menu, item selecionado) — não é a cor de marca. `muted` é o esmaecido: fundo ou texto de menor destaque, como um texto de apoio. |
+| **7. Secondary, Primary, Popover e Card** | `--secondary(-foreground)`, `--primary(-foreground)`, `--popover(-foreground)`, `--card(-foreground)` | `primary` é a cor de marca, a ação principal. `secondary` é uma ação de menor peso. `popover` é o fundo de elementos flutuantes — dropdown, tooltip, menu de contexto. `card` é o fundo de um cartão de conteúdo. Cada um tem seu par `-foreground`: a cor do texto legível sobre aquele fundo. |
+| **8. Radius** | `--radius` + `--radius-sm/md/xl/2xl/3xl/4xl` | `--radius` é o raio base do projeto. Os outros seis são multiplicadores dele (`calc(var(--radius) * 0.6)`, por exemplo) — editar o número do multiplicador muda a proporção sem mexer no raio base. `--radius-lg` não aparece na grade porque é sempre igual ao `--radius` base, sem multiplicador. |
 
 ---
 
@@ -294,7 +297,8 @@ Ser explícito sobre os limites evita surpresa:
   referência, não como cor fixa. Transformá-lo quebraria o encadeamento que você montou.
 - **Não sabe em que páginas uma regra aparece.** O CSS não guarda essa informação — só o HTML
   saberia. O (i) explica *quando* a regra vale, que é o que o seletor realmente diz.
-- **Não renomeia nem reordena variáveis.** Isso continua sendo trabalho de código.
+- **Não reordena variáveis.** A ordem no arquivo continua sendo trabalho de código. (Renomear, a
+  aba Variáveis já faz, em cascata — ver [seção própria](#a-aba-variáveis).)
 - **Não mostra prévia do seu site.** O navegador com o dev server já mostra a verdade; uma prévia
   aproximada dentro do Obsidian poderia mentir.
 
