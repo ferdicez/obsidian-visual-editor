@@ -154,6 +154,11 @@ function desenharCor(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void {
 	});
 }
 
+/** `border-radius`, `--radius`, `--radius-md`, `--raio-2`... — qualquer coisa que arredonde canto. */
+function ehRaio(nomeReal: string): boolean {
+	return /radius|raio|round|arredond/i.test(nomeReal);
+}
+
 /**
  * Medida: slider + campo numérico + unidade.
  *
@@ -169,6 +174,15 @@ function desenharMedida(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void 
 	}
 
 	const caixa = pai.createDiv({ cls: "ve-controle ve-controle-medida" });
+
+	// Um raio se vê melhor do que se lê: a bordinha mostra o arredondamento de verdade, ao vivo,
+	// em vez de só o número — pedido dela, "quando o token for um radius, coloca a bordinha
+	// flexível e adaptável, pra quando eu alterar, ela mudar também".
+	let previewRaio: HTMLElement | null = null;
+	if (ehRaio(campo.nomeReal)) {
+		previewRaio = caixa.createDiv({ cls: "ve-preview-raio" });
+		previewRaio.style.borderRadius = campo.valor;
+	}
 
 	const slider = caixa.createEl("input", {
 		cls: "ve-slider",
@@ -190,8 +204,13 @@ function desenharMedida(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void 
 
 	const montar = (n: string) => `${n}${partes.unidade}`;
 
+	const atualizarPreview = (bruto: string) => {
+		if (previewRaio) previewRaio.style.borderRadius = montar(bruto);
+	};
+
 	slider.addEventListener("input", () => {
 		numero.value = slider.value;
+		atualizarPreview(slider.value);
 	});
 	slider.addEventListener("change", () => aoMudar(montar(slider.value)));
 
@@ -199,9 +218,11 @@ function desenharMedida(pai: HTMLElement, campo: Campo, aoMudar: AoMudar): void 
 		const bruto = numero.value.trim();
 		if (bruto === "") return;
 		slider.value = bruto;
+		atualizarPreview(bruto);
 		aoMudar(montar(bruto));
 	};
 
+	numero.addEventListener("input", () => atualizarPreview(numero.value.trim()));
 	numero.addEventListener("blur", confirmarNumero);
 	numero.addEventListener("keydown", (evento) => {
 		if (evento.key === "Enter") {

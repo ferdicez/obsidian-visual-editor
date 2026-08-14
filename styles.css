@@ -318,7 +318,14 @@
 */
 .visual-editor-vista .ve-campo {
 	display: grid;
-	grid-template-columns: minmax(9em, 15em) 1fr auto;
+	/*
+		A coluna do controle tem largura FIXA (não `1fr`) de propósito: um `.ve-swatch` de cor, um
+		slider de medida e um "- vazio -" de texto têm larguras internas diferentes, e numa coluna
+		elástica cada um começava num pixel diferente — "cada quadradinho começando de um lugar",
+		como ela descreveu. Largura fixa + `justify-content: start` em cada `.ve-controle-*` alinha
+		o início de todos, sempre.
+	*/
+	grid-template-columns: minmax(9em, 15em) 16em auto;
 	gap: 1em;
 	align-items: center;
 	padding: 0.65em 0;
@@ -425,6 +432,33 @@
 .visual-editor-vista .ve-campo-info svg {
 	width: 0.95em;
 	height: 0.95em;
+}
+
+/* O lápis de renomear um token — mesmo tratamento mudo do (i), ao lado do nome real. */
+.visual-editor-vista .ve-acao-renomear {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	padding: 0;
+	width: 1.3em;
+	height: 1.3em;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-faint);
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.visual-editor-vista .ve-acao-renomear:hover {
+	color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+}
+
+.visual-editor-vista .ve-acao-renomear svg {
+	width: 0.85em;
+	height: 0.85em;
 }
 
 /*
@@ -605,6 +639,15 @@
 
 .visual-editor-vista .ve-controle-medida {
 	gap: 0.75em;
+}
+
+/* A bordinha viva de um campo de raio — mostra o arredondamento de verdade, não só o número. */
+.visual-editor-vista .ve-preview-raio {
+	flex: 0 0 auto;
+	width: 1.8em;
+	height: 1.8em;
+	background: var(--background-modifier-border);
+	border: 1px solid var(--background-modifier-border-hover);
 }
 
 .visual-editor-vista .ve-slider {
@@ -997,17 +1040,24 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 0.4em;
-	padding: 0.2em 0.6em;
+	height: 1.85em;
+	padding: 0 0.6em;
 	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
 	box-shadow: none;
 	color: var(--text-normal);
-	font-family: var(--font-monospace);
+	font-family: var(--font-interface);
 	font-size: var(--font-ui-smaller);
 	cursor: pointer;
+	width: 9em;
 	max-width: 100%;
-	min-width: 0;
+}
+
+/* A ficha de cor é mais larga: o retângulo da amostra come espaço que o nome ainda precisa. */
+.visual-editor-vista .ve-ficha-var.tem-cor {
+	width: 11em;
+	padding-left: 0;
 }
 
 .visual-editor-vista .ve-ficha-var:hover {
@@ -1015,23 +1065,22 @@
 	background: var(--background-modifier-hover);
 }
 
+/*
+	Mesma "caixa de número" que os campos de medida usam (`.ve-entrada-numero`, width 4.5em) — a cor
+	é só mais um tipo de valor, então a amostra ocupa o lugar que um número ocuparia.
+*/
 .visual-editor-vista .ve-ficha-ponto {
 	flex: 0 0 auto;
-	width: 0.8em;
-	height: 0.8em;
-	border-radius: 50%;
-	border: 1px solid var(--background-modifier-border);
+	align-self: stretch;
+	width: 4.5em;
+	border-radius: var(--radius-s) 0 0 var(--radius-s);
+	border-right: 1px solid var(--background-modifier-border);
 }
 
 .visual-editor-vista .ve-ficha-nome {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-.visual-editor-vista .ve-ficha-valor {
-	color: var(--text-faint);
-	flex: 0 0 auto;
 }
 
 /* Variável usada mas não declarada aqui — costuma vir de outro arquivo, e não é erro. */

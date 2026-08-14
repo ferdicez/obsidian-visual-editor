@@ -10,7 +10,7 @@ import {
 	modoDisponivel,
 } from "./documento";
 import { declararVariavel, extrairVariavel, ligarVariavel, renomearVariaveis, variaveisCompativeis } from "./extrair";
-import { ModalNomeVariavel, sugerirNome } from "./modal-nome";
+import { ModalNomeVariavel, ModalRenomearVariavel, sugerirNome } from "./modal-nome";
 import { abrirAcordeao, criarAcordeao } from "./acordeao";
 import { desenharDesignSystem } from "./design-system";
 import { desenharShadcn } from "./shadcn-vars";
@@ -362,9 +362,9 @@ export class VistaVisual extends TextFileView {
 			if (temDesignSystem) {
 				criarAba(
 					"design-system",
-					"Variáveis",
+					"Design System",
 					null,
-					"Os valores soltos que vão construir o design system: cores, formatos, sombras e tipografia — sem ainda dizer onde cada um se aplica."
+					"Um catálogo do zero — cores, formatos, sombras e tipografia — para projetos que não vão aproveitar os tokens que já vieram no arquivo. Os valores criados aqui viram tokens normais na aba Tokens."
 				);
 			}
 			if (temShadcn) {
@@ -895,11 +895,21 @@ export class VistaVisual extends TextFileView {
 
 		const cabecalho = rotulo.createDiv({ cls: "ve-campo-cabecalho" });
 		// Numa propriedade o nome exato do CSS é o que ela reconhece — "box-shadow", não "Box shadow".
-		// Num token o humanizado lê melhor, e o nome real fica no `title` da linha.
+		// Num token o nome real (`--chart-5`) é o que casa com o código; o humanizado escondia isso.
 		cabecalho.createSpan({
 			cls: "ve-campo-nome",
-			text: campo.papel === "propriedade" ? (campo.propriedade ?? campo.rotulo) : campo.rotulo,
+			text: campo.papel === "propriedade" ? (campo.propriedade ?? campo.rotulo) : campo.nomeReal,
 		});
+
+		// Renomear um token é ação explícita, nunca edição inline do nome — a mesma disciplina do
+		// botão de ligar/desligar variável: um clique dedicado, para não confundir "editar o valor"
+		// com "editar o nome" na mesma interação.
+		if (campo.papel !== "propriedade") {
+			const botaoRenomear = botaoIcone(cabecalho, "pencil", "Renomear esta variável", () =>
+				this.pedirNovoNome(campo)
+			);
+			botaoRenomear.addClass("ve-acao-renomear");
+		}
 
 		/*
 			Tudo o que EXPLICA o campo fica atrás do mesmo (i).
@@ -965,14 +975,15 @@ export class VistaVisual extends TextFileView {
 			});
 
 			// Uma amostra da cor na própria ficha: numa lista de regras, é o que deixa ver de relance
-			// que `--cor-primaria` é o vermelho, sem abrir o token.
+			// que `--cor-primaria` é o vermelho, sem abrir o token. Só o retângulo — o valor cru
+			// (`oklch(...)`) não aparece: o nome da variável já é a informação que importa aqui.
 			if (alvo?.tipo === "cor") {
+				ficha.addClass("tem-cor");
 				const ponto = ficha.createDiv({ cls: "ve-ficha-ponto" });
 				ponto.style.background = alvo.valor;
 			}
 
 			ficha.createSpan({ cls: "ve-ficha-nome", text: nome });
-			if (alvo) ficha.createSpan({ cls: "ve-ficha-valor", text: alvo.valor });
 
 			// Variável usada mas não declarada aqui: costuma vir de outro arquivo, e não é erro. Fica
 			// marcada para ela saber que não adianta procurar na aba Tokens.
@@ -1321,6 +1332,24 @@ export class VistaVisual extends TextFileView {
 	}
 
 	/** Pergunta o nome e extrai. O nome é sugerido a partir da regra e da propriedade. */
+	/**
+	 * Renomeia um token já declarado — pergunta o nome novo e propaga para todo `var(--nome)` que já
+	 * o usa no arquivo, numa passada só. Ver `renomearVariaveis` em `extrair.ts`.
+	 */
+	private pedirNovoNome(campo: Campo): void {
+		const declaradas = this.tokens.map((token) => token.nomeReal);
+
+		new ModalRenomearVariavel(this.app, campo.nomeReal, declaradas, (nomeNovo) => {
+			const resultado = renomearVariaveis(this.texto, [{ nomeAntigo: campo.nomeReal, nomeNovo }], declaradas);
+			if (!resultado.ok) {
+				new Notice(resultado.erro ?? "Não foi possível renomear a variável.");
+				return;
+			}
+			this.adotarTexto(resultado.texto, `Renomear ${campo.nomeReal}`);
+			new Notice(`Renomeada para ${nomeNovo}.`);
+		}).open();
+	}
+
 	private pedirNomeEExtrair(campo: Campo): void {
 		const declaradas = this.tokens.map((token) => token.nomeReal);
 		const sugestao = sugerirNome(campo, declaradas);
