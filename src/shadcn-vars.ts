@@ -27,6 +27,56 @@ interface TokenShadcn {
 	nome: string; // "--background"
 }
 
+/**
+ * Descrição de cada token para o ícone de informação — pedido dela: passar o mouse no nome da
+ * variável explica o que ela significa. Escopo: só os tokens fixos do catálogo `BLOCOS` +
+ * `--radius`/multiplicadores; sem entrada aqui, o ícone não aparece.
+ */
+const DESCRICOES: Record<string, string> = {
+	"--background": "Cor de fundo padrão da página, atrás de todo o conteúdo.",
+	"--foreground": "Cor de texto padrão, usada sobre o --background.",
+	"--font-sans": "Fonte principal de textos e interface (pilha de fontes sem serifa).",
+	"--font-mono": "Fonte usada em código, valores técnicos e texto monoespaçado.",
+	"--font-heading": "Fonte usada em títulos e cabeçalhos.",
+	"--sidebar-ring": "Contorno de foco (teclado/clique) dentro da barra lateral.",
+	"--sidebar-border": "Cor da borda/divisória da barra lateral.",
+	"--sidebar-accent-foreground": "Cor do texto sobre um item em destaque na barra lateral.",
+	"--sidebar-accent": "Cor de fundo de um item em destaque (hover/seleção) na barra lateral.",
+	"--sidebar-primary-foreground": "Cor do texto sobre o item ativo/primário da barra lateral.",
+	"--sidebar-primary": "Cor de fundo do item ativo/primário da barra lateral.",
+	"--sidebar-foreground": "Cor de texto padrão dentro da barra lateral.",
+	"--sidebar": "Cor de fundo da barra lateral.",
+	"--chart-1": "Primeira cor da paleta usada em gráficos.",
+	"--chart-2": "Segunda cor da paleta usada em gráficos.",
+	"--chart-3": "Terceira cor da paleta usada em gráficos.",
+	"--chart-4": "Quarta cor da paleta usada em gráficos.",
+	"--chart-5": "Quinta cor da paleta usada em gráficos.",
+	"--ring": "Contorno de foco (teclado/clique) em botões, campos e outros controles.",
+	"--input": "Cor da borda padrão de campos de formulário.",
+	"--border": "Cor da borda padrão de cards, divisórias e elementos gerais.",
+	"--destructive": "Cor de ações destrutivas — excluir, cancelar, erro.",
+	"--accent-foreground": "Cor do texto sobre uma área em destaque (--accent).",
+	"--accent": "Cor de fundo usada para destacar um elemento (hover, seleção) sem ser o primário.",
+	"--muted-foreground": "Cor de texto secundário/esmaecido, de menor ênfase.",
+	"--muted": "Cor de fundo esmaecida, para áreas de menor ênfase.",
+	"--secondary-foreground": "Cor do texto sobre um elemento secundário.",
+	"--secondary": "Cor de fundo de botões/elementos de ação secundária (menos ênfase que o primário).",
+	"--primary-foreground": "Cor do texto sobre um elemento primário.",
+	"--primary": "Cor principal da marca — botões e elementos de maior ênfase.",
+	"--popover-foreground": "Cor do texto dentro de popovers e menus flutuantes.",
+	"--popover": "Cor de fundo de popovers, menus e dropdowns flutuantes.",
+	"--card-foreground": "Cor do texto dentro de cards.",
+	"--card": "Cor de fundo dos cards.",
+	"--radius": "Raio de borda base — todos os multiplicadores abaixo partem deste valor.",
+	"--radius-sm": "Raio de borda pequeno, calculado a partir de --radius.",
+	"--radius-md": "Raio de borda médio, calculado a partir de --radius.",
+	"--radius-lg": "Raio de borda grande — sempre igual a --radius, sem multiplicador.",
+	"--radius-xl": "Raio de borda extra grande, calculado a partir de --radius.",
+	"--radius-2xl": "Raio de borda ainda maior, calculado a partir de --radius.",
+	"--radius-3xl": "Raio de borda muito grande, calculado a partir de --radius.",
+	"--radius-4xl": "Raio de borda máximo, calculado a partir de --radius.",
+};
+
 interface BlocoShadcn {
 	titulo: string;
 	tokens: TokenShadcn[];
@@ -188,12 +238,23 @@ function desenharLinha(
 	}
 }
 
+/**
+ * Nome técnico do token + ":" e, quando há descrição cadastrada, um ícone de informação com o
+ * texto no `title` (tooltip nativo ao passar o mouse) — pedido dela: "eu quero uma descrição do
+ * que significa cada uma dessas coisas".
+ */
 function desenharRotuloToken(pai: HTMLElement, nomeToken: string): void {
-	pai.createSpan({ cls: "ve-sc-nome-token", text: `${nomeToken}:` });
+	const rotulo = pai.createSpan({ cls: "ve-sc-nome-token" });
+	rotulo.createSpan({ text: `${nomeToken}:` });
+	const descricao = DESCRICOES[nomeToken];
+	if (descricao) {
+		rotulo.createSpan({ cls: "ve-sc-info", text: "ⓘ", attr: { title: descricao } });
+	}
 }
 
 /**
- * Um campo de texto simples: rótulo do token + valor, sem controle especial — usado por Fonte
+ * Um campo de texto simples: cor/valor primeiro, nome do token por último — pedido dela, "o
+ * primeiro item que aparece é o quadradinho da cor... depois vai ter a variável". Usado por Fonte
  * (pilha de fontes, não é cor) e por `--radius` (medida em rem/px, não multiplicador). As duas
  * chamadas só diferem no texto do placeholder de "vazio".
  */
@@ -206,7 +267,6 @@ function desenharCampoTexto(
 ): void {
 	const caixa = pai.createDiv({ cls: "ve-sc-campo" });
 	if (!campo) caixa.addClass("is-vazio");
-	desenharRotuloToken(caixa, nomeToken);
 
 	const entrada = caixa.createEl("input", {
 		cls: "ve-sc-entrada-texto",
@@ -218,6 +278,7 @@ function desenharCampoTexto(
 			disabled: campo ? null : "true",
 		},
 	});
+	desenharRotuloToken(caixa, nomeToken);
 	if (!campo) return;
 
 	const confirmar = () => {
@@ -240,10 +301,11 @@ function desenharCampoTexto(
 function desenharCampoCor(pai: HTMLElement, nomeToken: string, campo: Campo | null, acoes: AcoesShadcn): void {
 	const caixa = pai.createDiv({ cls: "ve-sc-campo" });
 	if (!campo) caixa.addClass("is-vazio");
-	desenharRotuloToken(caixa, nomeToken);
 
 	if (!campo) {
+		caixa.createDiv({ cls: "ve-sc-swatch is-vazio" });
 		caixa.createSpan({ cls: "ve-sc-vazio-texto", text: "— não encontrado —" });
+		desenharRotuloToken(caixa, nomeToken);
 		return;
 	}
 
@@ -263,6 +325,8 @@ function desenharCampoCor(pai: HTMLElement, nomeToken: string, campo: Campo | nu
 		cls: "ve-sc-entrada-hex",
 		attr: { type: "text", spellcheck: "false", value: hexInicial },
 	});
+
+	desenharRotuloToken(caixa, nomeToken);
 
 	const gravar = (hex: string) => {
 		// Preserva o alfa original (se o oklch tinha canal alfa) — trocar só a cor não deveria zerar
@@ -330,12 +394,12 @@ function desenharMultiplicador(
 	const cartao = pai.createDiv({ cls: "ve-sc-multiplicador" });
 	if (!campo) cartao.addClass("is-vazio");
 	cartao.createDiv({ cls: "ve-sc-multiplicador-rotulo", text: rotulo });
-	desenharRotuloToken(cartao, nomeToken);
 
 	const preview = cartao.createDiv({ cls: "ve-sc-multiplicador-preview" });
 
 	if (!campo) {
 		cartao.createSpan({ cls: "ve-sc-vazio-texto", text: "— não encontrado —" });
+		desenharRotuloToken(cartao, nomeToken);
 		return;
 	}
 
@@ -353,6 +417,8 @@ function desenharMultiplicador(
 			value: numeroAtual !== null ? String(numeroAtual) : campo.valor,
 		},
 	});
+
+	desenharRotuloToken(cartao, nomeToken);
 
 	entrada.addEventListener("input", () => {
 		const numero = parseFloat(entrada.value.trim());

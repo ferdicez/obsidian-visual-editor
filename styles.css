@@ -2520,10 +2520,27 @@
 
 .visual-editor-vista .ve-sc-nome-token {
 	flex: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
 	white-space: nowrap;
+	margin-left: auto;
+}
+
+/* Ícone de informação: tooltip nativo (`title`) explica o que o token significa. */
+.visual-editor-vista .ve-sc-info {
+	display: inline-flex;
+	font-family: var(--font-interface);
+	font-size: 11px;
+	color: var(--text-faint);
+	cursor: help;
+}
+
+.visual-editor-vista .ve-sc-info:hover {
+	color: var(--text-muted);
 }
 
 .visual-editor-vista .ve-sc-vazio-texto {
@@ -2535,6 +2552,7 @@
 .visual-editor-vista .ve-sc-entrada-texto,
 .visual-editor-vista .ve-sc-entrada-hex {
 	flex: 1 1 auto;
+	width: 100%;
 	min-width: 0;
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
@@ -2578,6 +2596,12 @@
 		inset 0 0 0 1px rgb(0 0 0 / 8%),
 		0 0 0 2px var(--background-secondary),
 		0 0 0 3px var(--color-orange);
+}
+
+.visual-editor-vista .ve-sc-swatch.is-vazio {
+	cursor: default;
+	background: var(--background-primary);
+	border-style: dashed;
 }
 
 .visual-editor-vista .ve-sc-swatch input[type="color"] {
